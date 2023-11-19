@@ -1,8 +1,11 @@
 # MicroPandOS su umps3
 
-Per compilare il progetto:
+## Per compilare il progetto:
 ```bash
 make
 ```
 
-Aprire `umps3` e creare una macchina, controllare per bene che i path corrispondano.
+## per testarlo
+
+* Aprire il terminale nella cartella `phase 1/starterKitUmps3/`
+* eseguire il comando `umps3 machine-config`
