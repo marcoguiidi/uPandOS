@@ -1,3 +1,4 @@
 *.umps
 *.o
 */* *.o
+kernel
