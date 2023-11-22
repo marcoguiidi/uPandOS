@@ -5,6 +5,7 @@ LIST_HEAD(pcbFree_h);
 static int next_pid = 1;
 
 void initPcbs() {
+    //inizializza il pcb
 }
 
 void freePcb(pcb_t *p) {
