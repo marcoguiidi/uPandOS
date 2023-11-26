@@ -6,12 +6,12 @@ static int next_pid = 1;
 
 void initPcbs() {
     for (int i = 0; i < MAXPROC; i++){
-        list_add_tail(&pcbTable[i].p_list, &pcbFree_h);
+        list_add(&pcbTable[i].p_list, &pcbFree_h);
     }
 }
 
 void freePcb(pcb_t *p) {
-    list_add_tail(&p->p_list, &pcbFree_h);
+    list_add(&p->p_list, &pcbFree_h);
 }
 
 pcb_t *allocPcb() {
@@ -19,7 +19,8 @@ pcb_t *allocPcb() {
         return NULL;
     } else {
         pcb_t* removed = container_of(&pcbFree_h, pcb_t, p_list);
-        
+        list_del(&removed->p_list);
+        /*
         removed->p_list = (struct list_head)LIST_HEAD_INIT(removed->p_list);
         removed->p_parent = NULL;
         removed->p_child = (struct list_head)LIST_HEAD_INIT(removed->p_child);
@@ -29,8 +30,8 @@ pcb_t *allocPcb() {
         removed->msg_inbox = (struct list_head)LIST_HEAD_INIT(removed->msg_inbox);
         removed->p_supportStruct = NULL;
         removed->p_pid = 0;
+        */
 
-        list_del(&removed->p_list);
         return removed;
     }
 }
