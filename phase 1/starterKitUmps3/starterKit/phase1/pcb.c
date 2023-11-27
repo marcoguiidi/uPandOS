@@ -18,19 +18,44 @@ pcb_t *allocPcb() {
     if (list_empty(&pcbFree_h) == 1) {
         return NULL;
     } else {
-        pcb_t* removed = container_of(&pcbFree_h, pcb_t, p_list);
+        pcb_t* removed = container_of(list_prev(&pcbFree_h), pcb_t, p_list); // pop last element
         list_del(&removed->p_list);
-        /*
+        
+        // init all fiends
         removed->p_list = (struct list_head)LIST_HEAD_INIT(removed->p_list);
         removed->p_parent = NULL;
         removed->p_child = (struct list_head)LIST_HEAD_INIT(removed->p_child);
         removed->p_sib = (struct list_head)LIST_HEAD_INIT(removed->p_sib);
-        //removed->p_s = (state_t){0}; //initialize all to 0
+
+        // /usr/include/umps3/umps/types.h
+        /*
+        #define STATE_GPR_LEN 29
+
+        typedef struct state {
+	        unsigned int entry_hi;
+	        unsigned int cause;
+	        unsigned int status;
+	        unsigned int pc_epc;
+	        unsigned int gpr[STATE_GPR_LEN];
+	        unsigned int hi;
+	        unsigned int lo;
+        } state_t;
+        */
+
+        removed->p_s.entry_hi = 0;
+        removed->p_s.cause = 0;
+        removed->p_s.status = 0;
+        removed->p_s.pc_epc = 0;
+        for (int i = 0; i < STATE_GPR_LEN; i++) {
+            removed->p_s.gpr[i] = 0;
+        }
+        removed->p_s.hi = 0;
+        removed->p_s.lo = 0;
+
         removed->p_time = 0;
         removed->msg_inbox = (struct list_head)LIST_HEAD_INIT(removed->msg_inbox);
         removed->p_supportStruct = NULL;
         removed->p_pid = 0;
-        */
 
         return removed;
     }
