@@ -19,7 +19,7 @@ msg_t *allocMsg() {
     }
 
     else{
-        msg_t* removed = container_of(&msgFree_h, msg_t, m_list);
+        msg_t* removed = container_of(list_prev(&msgFree_h), msg_t, m_list);
         list_del(&removed->m_list);
 
         removed->m_payload = 0;
