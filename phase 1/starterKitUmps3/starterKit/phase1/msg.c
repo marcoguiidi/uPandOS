@@ -23,7 +23,7 @@ msg_t *allocMsg() {
         list_del(&removed->m_list);
 
         removed->m_payload = 0;
-        removed->m_list = NULL;
+        INIT_LIST_HEAD(&removed->m_list);
         removed->m_sender = NULL;
         
         return removed;
@@ -31,12 +31,17 @@ msg_t *allocMsg() {
 }
 
 void mkEmptyMessageQ(struct list_head *head) {
+    struct list_head queue = LIST_HEAD_INIT(queue);
+    head = &queue;
+    return NULL;
 }
 
 int emptyMessageQ(struct list_head *head) {
+    return list_empty(head);
 }
 
 void insertMessage(struct list_head *head, msg_t *m) {
+    list_add_tail(&m->m_list, head);
 }
 
 void pushMessage(struct list_head *head, msg_t *m) {
