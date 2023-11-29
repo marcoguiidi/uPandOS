@@ -62,9 +62,13 @@ pcb_t *allocPcb() {
 }
 
 void mkEmptyProcQ(struct list_head *head) {
+    // assegno la listra a mano, TODO: da provare con LIST_HEAD_INIT
+    head->next = head;
+    head->prev = head;
 }
 
 int emptyProcQ(struct list_head *head) {
+    return list_empty(head);
 }
 
 void insertProcQ(struct list_head *head, pcb_t *p) {
