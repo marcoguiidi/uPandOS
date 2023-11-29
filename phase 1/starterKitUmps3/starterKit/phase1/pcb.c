@@ -72,15 +72,37 @@ int emptyProcQ(struct list_head *head) {
 }
 
 void insertProcQ(struct list_head *head, pcb_t *p) {
+    list_add_tail(&p->p_list, head);
 }
 
 pcb_t *headProcQ(struct list_head *head) {
+    if (emptyProcQ(head)) return NULL; 
+
+    return container_of(head->next, pcb_t, p_list);
 }
 
 pcb_t *removeProcQ(struct list_head *head) {
+    if (!list_empty(head)){
+        struct list_head* element = &head->next;
+        pcb_t* proc = container_of(element, pcb_t, p_list);
+        list_del(element);
+        return proc;        
+    }
+    return NULL;
 }
 
 pcb_t *outProcQ(struct list_head *head, pcb_t *p) {
+    if(!list_empty(head)){
+        struct list_head* iter;
+        list_for_each(iter, head) {
+            pcb_t* proc = container_of(iter, pcb_t, p_list);
+            if (p == proc){
+                list_del(iter);
+                return p;
+            }
+        }
+    }
+    return NULL;
 }
 
 int emptyChild(pcb_t *p) {
