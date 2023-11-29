@@ -70,7 +70,7 @@ int emptyProcQ(struct list_head *head) {
 }
 
 void insertProcQ(struct list_head *head, pcb_t *p) {
-    list_add_tail(&p->p_list, head);
+    list_add_tail(&p->p_list, head); // is a queue, element in goes last
 }
 
 pcb_t *headProcQ(struct list_head *head) {
@@ -80,13 +80,13 @@ pcb_t *headProcQ(struct list_head *head) {
 }
 
 pcb_t *removeProcQ(struct list_head *head) {
-    if (!list_empty(head)){
-        struct list_head* element = &head->next;
-        pcb_t* proc = container_of(element, pcb_t, p_list);
-        list_del(element);
-        return proc;        
+    if (list_empty(head)) {
+        return NULL;
+    } else {
+        pcb_t* proc = container_of(list_next(head), pcb_t, p_list); // is a queue, last in first out
+        list_del(&proc->p_list);
+        return proc;
     }
-    return NULL;
 }
 
 pcb_t *outProcQ(struct list_head *head, pcb_t *p) {
