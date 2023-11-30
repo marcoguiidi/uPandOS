@@ -104,13 +104,24 @@ pcb_t *outProcQ(struct list_head *head, pcb_t *p) {
 }
 
 int emptyChild(pcb_t *p) {
+    return list_empty(&p->p_child);
 }
 
 void insertChild(pcb_t *prnt, pcb_t *p) {
+    list_add(&p->p_list, &prnt->p_child);
+    p->p_sib = prnt->p_child;
+    // complatare fratelli
 }
 
 pcb_t *removeChild(pcb_t *p) {
+    return removeProcQ(&p->p_child);
+    // completare fratelli
 }
 
 pcb_t *outChild(pcb_t *p) {
+    if(p->p_parent != NULL){
+        list_del(&p->p_list);
+        return p;
+    }
+    return NULL;
 }
