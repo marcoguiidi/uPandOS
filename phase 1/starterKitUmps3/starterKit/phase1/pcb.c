@@ -107,23 +107,12 @@ int emptyChild(pcb_t *p) {
     return list_empty(&p->p_child);
 }
 
-void insertChild(pcb_t *prnt, pcb_t *p) { //da sistemare
-    pcb_t* f_child = container_of(&prnt->p_child, pcb_t, p_list);  // ottengo il puntatore al primo figlio della lista
-    prnt->p_child = p->p_list;  
-    p->p_parent = prnt;                     
-
-    // inserimento nella lista dei fratelli
-    p->p_sib.next = &f_child->p_sib;
-    p->p_sib.prev = f_child->p_sib.prev;
-    f_child->p_sib.prev = &p->p_sib;
-            
-    prnt->p_child.next = &p->p_sib;
+void insertChild(pcb_t *prnt, pcb_t *p) {
+    list_add_tail(&p->p_sib, &prnt->p_child);
+    p->p_parent = prnt;
 }
 
 pcb_t *removeChild(pcb_t *p) {
-    pcb_t* tmp = outProcQ(&p->p_sib, p);
-    tmp = outProcQ(&p->p_list, p);
-    return p;
 }
 
 pcb_t *outChild(pcb_t *p) {
