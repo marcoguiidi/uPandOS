@@ -113,11 +113,17 @@ void insertChild(pcb_t *prnt, pcb_t *p) {
 }
 
 pcb_t *removeChild(pcb_t *p) {
+    if (!emptyChild(p)) {
+        pcb_t* f_child = container_of(list_next(&p->p_child), pcb_t, p_sib);
+        list_del(&f_child->p_sib);
+        return f_child;
+    }
+    return NULL;
 }
 
 pcb_t *outChild(pcb_t *p) {
     if(p->p_parent != NULL){
-        list_del(&p->p_list);
+        list_del(&p->p_sib);
         return p;
     }
     return NULL;
