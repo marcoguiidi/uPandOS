@@ -1,0 +1,4 @@
+*.o
+./phase1/*.o 
+kernel 
+kernel.*.umps
