@@ -1,7 +1,7 @@
 #ifndef INITIAL_H_INCLUDED
 #define INITIAL_H_INCLUDED
 
-#include <umps/types.h>
+#include "/usr/include/umps3/umps/types.h"
 #include "../../headers/listx.h"
 #include "../../headers/types.h"
 #include "../../headers/const.h"
@@ -17,6 +17,6 @@ pcb_t* current_process;
 struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
 
 
-passupvector_t* passupvector = PASSUPVECTOR;
+passupvector_t* passupvector = (memaddr) PASSUPVECTOR;
 
 #endif

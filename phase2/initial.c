@@ -2,6 +2,9 @@
 initial.c This module implements main() and exports the Nucleus’s global variables (e.g.
 process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 */
+#include "/usr/include/umps3/umps/libumps.h"
+#include "/usr/include/umps3/umps/const.h"
+#include "/usr/include/umps3/umps/cp0.h"
 
 #include "./headers/exceptions.h"
 #include "./headers/initial.h"
@@ -12,6 +15,8 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 
 #include "../phase1/headers/msg.h"
 #include "../phase1/headers/pcb.h"
+
+extern void test();
 
 int main(void) {
     /*
@@ -43,11 +48,68 @@ int main(void) {
     */
     process_count = 0;
     soft_block_count = 0;
-    INIT_LIST_HEAD(&ready_queue);
+    mkEmptyProcQ(&ready_queue);
     current_process = NULL;
     for (int i = 0; i < SEMDEVLEN; i++) {
         INIT_LIST_HEAD(&blocked_pcbs[i]);
     }
+
+    /*
+    load the system-wide Interval Timer with 100 milliseconds (constant PSECOND) (1.5)
+    */
+    LDIT(PSECOND);
+
+    /*
+    instantiate a first process, place its PCB in the Ready Queue, and increment Process Count (1.6)
+    */
+    /*
+    p_s is the processor state (state_t)
+    typedef struct state {
+	    unsigned int entry_hi;
+	    unsigned int cause;
+	    unsigned int status;
+	    unsigned int pc_epc;
+	    unsigned int gpr[STATE_GPR_LEN];
+	    unsigned int hi;
+	    unsigned int lo;
+    } state_t;
+
+    */
+    pcb_t* first = allocPcb();
+    /*
+    p.25 of uMPS3princOfOperations.pdf 
+    */
+    first->p_s.status = (first->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
+    RAMTOP(first->p_s.reg_sp);
+    first->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+    first->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
+    first->p_time = 0;
+    first->p_supportStruct = NULL;
+
+    insertProcQ(&ready_queue, first);
+    process_count++;
+
+    /*
+    (1.7)
+    */
+    pcb_t* second = allocPcb();
+    /*
+    p.25 of uMPS3princOfOperations.pdf 
+    */
+    first->p_s.status = (first->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
+    RAMTOP(first->p_s.reg_sp) - (2 * FRAMESIZE);
+    first->p_s.pc_epc = (memaddr) test;
+    first->p_s.reg_t9 = (memaddr) test;
+    first->p_time = 0;
+    first->p_supportStruct = NULL;
+
+    insertProcQ(&ready_queue, second);
+    process_count++;
+
+    /*
+    call the scheduler (1.8) 
+    */
+    scheduler();
 
     return 0;
 }
