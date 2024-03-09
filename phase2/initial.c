@@ -109,7 +109,7 @@ int main(void) {
     /*
     call the scheduler (1.8) 
     */
-    scheduler();
+    scheduler(); //TODO:
 
     return 0;
 }
