@@ -18,6 +18,15 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 
 extern void test();
 
+int process_count = 0;
+int soft_block_count = 0;
+struct list_head ready_queue;
+pcb_t* current_process;
+struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
+
+
+passupvector_t* passupvector = PASSUPVECTOR;
+
 int main(void) {
     /*
     uTLB_RefillHandler function definition is in exceptions.h

@@ -12,13 +12,13 @@ Declare the Level 3 global variables (1.1)
 
 #define FRAMESIZE 1000 // TODO:
 
-int process_count = 0;
-int soft_block_count = 0;
-struct list_head ready_queue;
-pcb_t* current_process;
-struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
+extern int process_count;
+extern int soft_block_count;
+extern struct list_head ready_queue;
+extern pcb_t* current_process;
+extern struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
 
 
-passupvector_t* passupvector = PASSUPVECTOR;
+extern passupvector_t* passupvector;
 
 #endif
