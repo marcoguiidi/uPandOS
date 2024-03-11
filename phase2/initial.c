@@ -105,12 +105,12 @@ int main(void) {
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */
-    first->p_s.status = (first->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(first->p_s.reg_sp) - (2 * FRAMESIZE);
-    first->p_s.pc_epc = (memaddr) test;
-    first->p_s.reg_t9 = (memaddr) test;
-    first->p_time = 0;
-    first->p_supportStruct = NULL;
+    second->p_s.status = (first->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
+    RAMTOP(second->p_s.reg_sp) - (2 * FRAMESIZE);
+    second->p_s.pc_epc = (memaddr) test;
+    second->p_s.reg_t9 = (memaddr) test;
+    second->p_time = 0;
+    second->p_supportStruct = NULL;
 
     insertProcQ(&ready_queue, second);
     process_count++;
