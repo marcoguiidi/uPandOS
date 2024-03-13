@@ -5,6 +5,8 @@ propriate messages for the blocked PCBs.
 */
 
 #include "./headers/interrupts.h"
+#include "headers/initial.h"
+#include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 
 
@@ -40,7 +42,49 @@ void nonTimerInterrupt(int line){
     * calculate address of this device device's register
     */
     unsigned int devAddrBase;
-    int devNo; //TODO
+    unsigned int add;
+    int devNo;
+
+    //switch case per ottenere indirizzo della word per ottenere poi il device number
+    switch (line + 3) {
+        case DISKINT:
+            add = 0x1000002C;
+            break;
+        case FLASHINT: 
+            add = 0x1000002C + 0x04;
+            break;
+        case NETWINT: 
+            add = 0x1000002C + 0x08;
+            break;
+        case PRNTINT: 
+            add = 0x1000002C + 0x0C;
+            break;
+        case TERMINT: 
+            add = 0x1000002C + 0x10;
+            break;
+    }
+
+    //cercare il primo bit acceso all'interno della word associata a quell' indirizzo e assegnarlo a devNo
+    unsigned int* word = add;
+    
+    if (*word & DEV0ON){
+        devNo = 0;
+    }else if (*word & DEV1ON){
+        devNo = 1;
+    }else if (*word & DEV2ON){
+        devNo = 2;
+    }else if (*word & DEV3ON){
+        devNo = 3;
+    }else if (*word & DEV4ON){
+        devNo = 4;
+    }else if (*word & DEV5ON){
+        devNo = 5;
+    }else if (*word & DEV6ON){
+        devNo = 6;
+    }else if (*word & DEV7ON){
+        devNo = 7;
+    }
+
     devAddrBase = 0x10000054 + (line * 0x80) + (devNo * 0x10);
 
     /* 2
@@ -48,8 +92,13 @@ void nonTimerInterrupt(int line){
     */
     unsigned int statusCode;
     devreg_t* devReg = devAddrBase;
+
     if (line == 7){
-        statusCode = devReg->term.transm_status;
+        if (devReg->term.transm_command != ACK){ // se non ho completato l'interrupt di trasmissione
+            statusCode = devReg->term.transm_status;
+        }else{
+            statusCode = devReg->term.recv_status;
+        }
     }else{
         statusCode = devReg->dtp.status;
     }
@@ -58,9 +107,35 @@ void nonTimerInterrupt(int line){
     * acknowledge the outstanding interrupt
     */
     if (line == 7){
-        devReg->term.transm_command = ACK;
+        if (devReg->term.transm_command != ACK){ // se non ho completato l'interrupt di trasmissione
+            devReg->term.transm_command = ACK;
+        }else{
+            devReg->term.recv_command = ACK;
+        }
     }else{
         devReg->dtp.command = ACK;
     }
+
+    /* 4
+    * send message to unblock caller pcb
+    */
+    pcb_t* unblocked;
+    // TODO
+
+
+    /* 5
+    * place saved status code in unblocked pcb's v0 register
+    */
+    unblocked->p_s.reg_v0 = statusCode;
+
+    /* 6
+    * insert newly unblocked pcb in ready queue
+    */
+    insertProcQ(&ready_queue, unblocked);
+
+    /* 7
+     * return control to current process
+     */
+     LDST(BIOSDATAPAGE);
 
 }
