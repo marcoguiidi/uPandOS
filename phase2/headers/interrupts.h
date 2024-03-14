@@ -16,10 +16,19 @@
 
 void interruptHandler();
 
-unsigned int getIp();
-
+/*
+* manage non-timer interrupts (lines 3-7)
+*/
 void nonTimerInterrupt(int);
 
-void timerInterrupt(int);
+/*
+* manage PLT interrupts (line 1)
+*/
+void PLTinterrupt();
+
+/*
+* manage Interval Timer interrupts (line 2)
+*/
+void ITinterrupt()
 
 #endif

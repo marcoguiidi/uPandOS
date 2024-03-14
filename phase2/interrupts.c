@@ -6,8 +6,10 @@ propriate messages for the blocked PCBs.
 
 #include "./headers/interrupts.h"
 #include "headers/initial.h"
+#include "headers/scheduler.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 
 
 void interruptHandler(){
@@ -27,8 +29,10 @@ void interruptHandler(){
 
             if (line > 2){
                 nonTimerInterrupt(line);
+        }else if (line == 1){
+            PLTinterrupt();
         }else{
-            timerInterrupt(line);
+            ITinterrupt();
         }
     }
     
@@ -138,4 +142,28 @@ void nonTimerInterrupt(int line){
      */
      LDST(BIOSDATAPAGE);
 
+}
+
+void PLTinterrupt(){
+
+    /* 1
+    * Acknowledge PLT
+    */
+    setTIMER(0x00000000);
+
+    /* 2
+    * copy processor state in current process
+    */
+    state_t *saved = BIOSDATAPAGE;
+    current_process->p_s = *saved;
+
+    /* 3
+    * place current process in ready queue
+    */
+    insertProcQ(&ready_queue, current_process);
+
+    /* 4
+    * call the scheduler
+    */
+    scheduler();
 }
