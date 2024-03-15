@@ -167,3 +167,22 @@ void PLTinterrupt(){
     */
     scheduler();
 }
+
+void ITinterrupt(){
+
+    /* 1
+    * acknowledge the interrupt
+    */
+    LDIT(PSECOND);
+
+    /* 2
+    * unblock all pcbs waiting a pseudo clock tick
+    */
+    // waitForClock operation to SSI
+    //TODO
+    
+    /* 3
+    * return control to current process
+    */
+    LDST(BIOSDATAPAGE);
+}

@@ -29,6 +29,6 @@ void PLTinterrupt();
 /*
 * manage Interval Timer interrupts (line 2)
 */
-void ITinterrupt()
+void ITinterrupt();
 
 #endif
