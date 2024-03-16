@@ -19,6 +19,13 @@ extern struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-c
 
 extern passupvector_t* passupvector;
 
+/** last used pid */
+extern unsigned int lastpid;
+
+/**
+return a not used pid
+*/
+unsigned int new_pid();
 void process_spawn(pcb_t* process);
 void process_kill(pcb_t*  process);
 

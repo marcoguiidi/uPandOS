@@ -8,13 +8,10 @@
 #include "../../phase1/headers/msg.h"
 #include "../../phase1/headers/pcb.h"
 
-#define CREATEPROCESS 1
-#define TERMINATEPROCESS 2
-#define DODIO 3
-#define GETCPUTIME 4
-#define WAITFORCLOCK 5
-#define GETSUPPORTDATA 6
-#define GETPROCESSID 7
+// for spec compatability spec2 is wrong
+#define TERMINATEPROCESS TERMPROCESS
+
+void SSI_function_entry_point();
 
 void SSIRequest(pcb_t* sender, int service, void* arg);
 

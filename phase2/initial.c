@@ -27,7 +27,16 @@ struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
 
 passupvector_t* passupvector = PASSUPVECTOR;
 
+unsigned int lastpid = 0;
+
+unsigned int new_pid() {
+    unsigned int new_pid = lastpid;
+    lastpid++;
+    return new_pid;
+}
+
 void process_spawn(pcb_t *process) {
+    process->p_pid = new_pid();
     insertProcQ(&ready_queue, process);
     process_count++;
 }
@@ -101,8 +110,8 @@ int main(void) {
     */
     first->p_s.status = (first->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
     RAMTOP(first->p_s.reg_sp);
-    first->p_s.pc_epc = (memaddr) SSIRequest;
-    first->p_s.reg_t9 = (memaddr) SSIRequest;
+    first->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+    first->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
     first->p_time = 0;
     first->p_supportStruct = NULL;
 
