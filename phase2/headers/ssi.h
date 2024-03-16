@@ -8,14 +8,14 @@
 #include "../../phase1/headers/msg.h"
 #include "../../phase1/headers/pcb.h"
 
-#define SSI_CREATEPROCESS 1
-#define SSI_TERMINATEPROCESS 2
-#define SSI_DODIO 3
-#define SSI_GETCPUTIME 4
-#define SSI_WAITFORCLOCK 5
-#define SSI_GETSUPPORTDATA 6
-#define SSI_GETPROCESSID 7
+#define CREATEPROCESS 1
+#define TERMINATEPROCESS 2
+#define DODIO 3
+#define GETCPUTIME 4
+#define WAITFORCLOCK 5
+#define GETSUPPORTDATA 6
+#define GETPROCESSID 7
 
-void SSI_function_entry_point(pcb_t* sender, int service, void* arg); //TODO:
+void SSIRequest(pcb_t* sender, int service, void* arg);
 
 #endif

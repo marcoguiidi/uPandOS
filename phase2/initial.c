@@ -27,6 +27,17 @@ struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
 
 passupvector_t* passupvector = PASSUPVECTOR;
 
+void process_spawn(pcb_t *process) {
+    insertProcQ(&ready_queue, process);
+    process_count++;
+}
+
+void process_kill(pcb_t *process) {
+    outProcQ(&ready_queue, process);
+    freePcb(process);
+    process_count--;
+}
+
 int main(void) {
     /*
     uTLB_RefillHandler function definition is in exceptions.h
@@ -90,13 +101,12 @@ int main(void) {
     */
     first->p_s.status = (first->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
     RAMTOP(first->p_s.reg_sp);
-    first->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-    first->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
+    first->p_s.pc_epc = (memaddr) SSIRequest;
+    first->p_s.reg_t9 = (memaddr) SSIRequest;
     first->p_time = 0;
     first->p_supportStruct = NULL;
 
-    insertProcQ(&ready_queue, first);
-    process_count++;
+    process_spawn(first);
 
     /*
     (1.7)
@@ -106,14 +116,13 @@ int main(void) {
     p.25 of uMPS3princOfOperations.pdf 
     */
     second->p_s.status = (first->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(second->p_s.reg_sp) - (2 * FRAMESIZE);
+    RAMTOP(second->p_s.reg_sp) - (2 * PAGESIZE); // FRAMESIZE è pagesize, sbagiate le specifiche
     second->p_s.pc_epc = (memaddr) test;
     second->p_s.reg_t9 = (memaddr) test;
     second->p_time = 0;
     second->p_supportStruct = NULL;
 
-    insertProcQ(&ready_queue, second);
-    process_count++;
+    process_spawn(second);
 
     /*
     call the scheduler (1.8) 
