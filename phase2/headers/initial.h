@@ -19,6 +19,8 @@ extern struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-c
 
 extern passupvector_t* passupvector;
 
+extern pcb_t* ssi_pcb;
+
 /** last used pid */
 extern unsigned int lastpid;
 

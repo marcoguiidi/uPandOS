@@ -33,11 +33,11 @@ void SSI_function_entry_point() {
     pcb_t* sender;
     msg_t* msgin;
     while (TRUE) {
-        /*pid_sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, payload, 0); DA RIFARE
+        pid_sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, payload, 0);
         sender = pid_to_pcb(pid_sender);
-        msgin = headMessage(&sender->msg_inbox);
-        SSIRequest(sender, sender->p_s.reg_a2, (void*)msgin->m_payload);
-        popMessage(msgin, sender);*/ 
+        // current_process now is SSI
+        msgin = popMessage(&current_process->msg_inbox, NULL); // get message from ANY
+        SSIRequest(sender, sender->p_s.reg_a2, (void*)payload);
     }
 }
 
@@ -48,11 +48,15 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ;
             ssi_create_process_t* data = (ssi_create_process_t*)arg;
             pcb_t* newprocess = allocPcb();
-            if (newprocess == NULL) return; //return NOPROC;  //TODO: COME DEVO RITORNARE???
-            newprocess->p_s = data->state;
-            newprocess->p_supportStruct = data->support;
-            insertChild(sender, newprocess); // is child of sender
-            process_spawn(newprocess);
+            if (newprocess == NULL) {
+                SYSCALL(SENDMESSAGE, sender, NOPROC, 0);
+            } else {
+                newprocess->p_s = *data->state;
+                newprocess->p_supportStruct = data->support;
+                insertChild(sender, newprocess); // is child of sender
+                process_spawn(newprocess);
+                SYSCALL(SENDMESSAGE, sender, newprocess, 0); // return new process
+            }
             break;
         case TERMINATEPROCESS:
             if (arg == NULL) {
@@ -64,9 +68,34 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             break;
         case DOIO:
             // TODO: DoIO
+            ;
+            ssi_payload_t* payload = (ssi_payload_t*) arg;
+              
             break;
         case GETTIME:
+            ;
+            cpu_t time = sender->p_time;
+            SYSCALL(SENDMESSAGE, sender, time, 0);
             break;
+        case CLOCKWAIT:
+            ;
+            // waiting pseudo-clock implementation
+            // TODO: WaitForClock
+            break;
+        case GETSUPPORTPTR:
+            ;
+            support_t* supportdata = sender->p_supportStruct;
+            SYSCALL(SENDMESSAGE, sender, supportdata, 0);
+            break;
+        case GETPROCESSID:
+            ;
+            unsigned int pid;
+            if (arg == 0) {
+                pid = sender->p_pid;
+            } else {
+                pid = sender->p_parent->p_pid;
+            }
+            SYSCALL(SENDMESSAGE, sender, pid, 0);
         default:
             /*
             If service does not match any of those 

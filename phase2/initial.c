@@ -29,6 +29,8 @@ passupvector_t* passupvector = PASSUPVECTOR;
 
 unsigned int lastpid = 0;
 
+pcb_t* ssi_pcb;
+
 unsigned int new_pid() {
     unsigned int new_pid = lastpid;
     lastpid++;
@@ -84,12 +86,12 @@ int main(void) {
     }
 
     /*
-    load the system-wide Interval Timer with 100 milliseconds (constant PSECOND) (1.5)
+    load the system-wide Interval Timer with 100 millitest_pcbs (constant Ptest_pcb) (1.5)
     */
     LDIT(PSECOND);
 
     /*
-    instantiate a first process, place its PCB in the Ready Queue, and increment Process Count (1.6)
+    instantiate a ssi_pcb process, place its PCB in the Ready Queue, and increment Process Count (1.6)
     */
     /*
     p_s is the processor state (state_t)
@@ -104,34 +106,34 @@ int main(void) {
     } state_t;
 
     */
-    pcb_t* first = allocPcb();
+    ssi_pcb = allocPcb();
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */
-    first->p_s.status = (first->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
-    RAMTOP(first->p_s.reg_sp);
-    first->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-    first->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
-    first->p_time = 0;
-    first->p_supportStruct = NULL;
+    ssi_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
+    RAMTOP(ssi_pcb->p_s.reg_sp);
+    ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+    ssi_pcb->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
+    ssi_pcb->p_time = 0;
+    ssi_pcb->p_supportStruct = NULL;
 
-    process_spawn(first);
+    process_spawn(ssi_pcb);
 
     /*
     (1.7)
     */
-    pcb_t* second = allocPcb();
+    pcb_t* test_pcb = allocPcb();
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */
-    second->p_s.status = (first->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(second->p_s.reg_sp) - (2 * PAGESIZE); // FRAMESIZE è pagesize, sbagiate le specifiche
-    second->p_s.pc_epc = (memaddr) test;
-    second->p_s.reg_t9 = (memaddr) test;
-    second->p_time = 0;
-    second->p_supportStruct = NULL;
+    test_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
+    RAMTOP(test_pcb->p_s.reg_sp) - (2 * PAGESIZE); // FRAMESIZE è pagesize, sbagiate le specifiche
+    test_pcb->p_s.pc_epc = (memaddr) test;
+    test_pcb->p_s.reg_t9 = (memaddr) test;
+    test_pcb->p_time = 0;
+    test_pcb->p_supportStruct = NULL;
 
-    process_spawn(second);
+    process_spawn(test_pcb);
 
     /*
     call the scheduler (1.8) 
