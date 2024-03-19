@@ -5,11 +5,6 @@ propriate messages for the blocked PCBs.
 */
 
 #include "./headers/interrupts.h"
-#include "headers/initial.h"
-#include "headers/scheduler.h"
-#include <umps3/umps/const.h>
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
 
 
 void interruptHandler(){
@@ -91,32 +86,23 @@ void nonTimerInterrupt(int line){
 
     devAddrBase = 0x10000054 + (line * 0x80) + (devNo * 0x10);
 
-    /* 2
-    * save off status code
+    /* 2 && 3
+    * save off status code && ACK command the outstanding interrupt
     */
     unsigned int statusCode;
+    unsigned int mask = 1u << 5;
     devreg_t* devReg = devAddrBase;
-
+    
     if (line == 7){
-        if (devReg->term.transm_command != ACK){ // se non ho completato l'interrupt di trasmissione
-            statusCode = devReg->term.transm_status;
-        }else{
-            statusCode = devReg->term.recv_status;
-        }
-    }else{
-        statusCode = devReg->dtp.status;
-    }
-
-    /* 3
-    * acknowledge the outstanding interrupt
-    */
-    if (line == 7){
-        if (devReg->term.transm_command != ACK){ // se non ho completato l'interrupt di trasmissione
+        if (devReg->term.transm_status & mask){  // codice 5 nel campo status del device register del terminale
+            statusCode = devReg->term.transm_status; 
             devReg->term.transm_command = ACK;
         }else{
+            statusCode = devReg->term.recv_status;
             devReg->term.recv_command = ACK;
         }
     }else{
+        statusCode = devReg->dtp.status;
         devReg->dtp.command = ACK;
     }
 
@@ -178,7 +164,6 @@ void ITinterrupt(){
     /* 2
     * unblock all pcbs waiting a pseudo clock tick
     */
-    // waitForClock operation to SSI
     //TODO
     
     /* 3

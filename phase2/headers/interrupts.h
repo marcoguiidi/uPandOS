@@ -11,9 +11,12 @@
 #include "../../phase1/headers/pcb.h"
 
 
+
 #include "initial.h"
 
-
+/*
+* funzione da richiamare son un pthread, in quanto cicla continuamente alla ricerca di interrupt
+*/
 void interruptHandler();
 
 /*
