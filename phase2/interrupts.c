@@ -44,7 +44,7 @@ void nonTimerInterrupt(int line){
     unsigned int add;
     int devNo;
 
-    //switch case per ottenere indirizzo della word per ottenere poi il device number
+    // switch case per ottenere indirizzo della word per ottenere poi il device number
     switch (line + 3) {
         case DISKINT:
             add = 0x1000002C;
@@ -63,27 +63,10 @@ void nonTimerInterrupt(int line){
             break;
     }
 
-    //cercare il primo bit acceso all'interno della word associata a quell' indirizzo e assegnarlo a devNo
-    unsigned int* word = add;
-    
-    if (*word & DEV0ON){
-        devNo = 0;
-    }else if (*word & DEV1ON){
-        devNo = 1;
-    }else if (*word & DEV2ON){
-        devNo = 2;
-    }else if (*word & DEV3ON){
-        devNo = 3;
-    }else if (*word & DEV4ON){
-        devNo = 4;
-    }else if (*word & DEV5ON){
-        devNo = 5;
-    }else if (*word & DEV6ON){
-        devNo = 6;
-    }else if (*word & DEV7ON){
-        devNo = 7;
-    }
+    // cercare il primo bit acceso all'interno della word associata a quell' indirizzo e assegnarlo a devNo
+    devNo = calcDevNo(add);
 
+    // calcolo indirizzo base
     devAddrBase = 0x10000054 + (line * 0x80) + (devNo * 0x10);
 
     /* 2 && 3
@@ -170,4 +153,26 @@ void ITinterrupt(){
     * return control to current process
     */
     LDST(BIOSDATAPAGE);
+}
+
+int calcDevNo(unsigned int address){
+    unsigned int* word = address;
+    
+    if (*word & DEV0ON){
+        return 0;
+    }else if (*word & DEV1ON){
+        return 1;
+    }else if (*word & DEV2ON){
+        return 2;
+    }else if (*word & DEV3ON){
+        return 3;
+    }else if (*word & DEV4ON){
+        return 4;
+    }else if (*word & DEV5ON){
+        return 5;
+    }else if (*word & DEV6ON){
+        return 6;
+    }else if (*word & DEV7ON){
+        return 7;
+    }
 }

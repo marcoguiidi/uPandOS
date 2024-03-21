@@ -34,4 +34,9 @@ void PLTinterrupt();
 */
 void ITinterrupt();
 
+/*
+* returns the devNo associated
+*/
+int calcDevNo(unsigned int address);
+
 #endif
