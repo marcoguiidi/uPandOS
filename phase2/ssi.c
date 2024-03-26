@@ -4,6 +4,7 @@ ssi.c This module implements the System Service Interface process.
 
 #include "./headers/ssi.h"
 #include "./headers/initial.h"
+#include "headers/interrupts.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 
@@ -70,7 +71,25 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             // TODO: DoIO
             ;
             ssi_payload_t* payload = (ssi_payload_t*) arg;
-              
+            ssi_do_io_t* doio = payload->arg;
+            int devno = calcDevNo(doio->commandAddr);
+            // devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
+
+            pcb_t* suspended_process = outProcQ(&ready_queue, sender);
+            // save it on the corrisponding device
+            insertProcQ(&blocked_pcbs[devno], suspended_process);
+            soft_block_count++;
+            *doio->commandAddr = doio->commandValue;
+            /*
+            * every process should now be in a blocked state as everyone is waiting for a task to end, so the
+                the scheduler should call the WAIT() function; Important: The current process must be set to
+                NULL and all interrupts must be ON; ???
+            * an interrupt exception should be raised by the CPU; ???
+            given the cause code, the interrupt handler should understand which device triggered the TRAP;
+            check the status and send to the device an acknowledge (setting the device command address to ACK);
+            */
+
+            // ...
             break;
         case GETTIME:
             ;

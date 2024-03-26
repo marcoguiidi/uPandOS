@@ -44,7 +44,12 @@ void process_spawn(pcb_t *process) {
 }
 
 void process_kill(pcb_t *process) {
-    outProcQ(&ready_queue, process);
+    if (outProcQ(&ready_queue, process) == NULL) { //not in ready queue
+        // check blocked pbc
+        for (int i = 0; i < SEMDEVLEN; i++) {
+            if (outProcQ(&blocked_pcbs[i], process) != NULL) break; // found it
+        }
+    }
     freePcb(process);
     process_count--;
 }
