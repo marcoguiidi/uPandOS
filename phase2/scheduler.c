@@ -21,7 +21,7 @@ void scheduler(){
             HALT();
         }
         if(process_count>1 && soft_block_count>0){
-           setSTATUS(getSTATUS () | STATUS_IEc & STATUS_IM_MASK) & (~STATUS_TE);  
+           setSTATUS(getSTATUS() | STATUS_IEc | STATUS_IM_MASK) & (~STATUS_TE);  
             WAIT(); 
         }
         //deadlock
