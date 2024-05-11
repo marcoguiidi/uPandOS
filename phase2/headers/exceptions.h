@@ -12,9 +12,7 @@
 #include "/usr/include/umps3/umps/const.h"
 #include "/usr/include/umps3/umps/cp0.h"
 #include "/usr/include/umps3/umps/arch.h"
-#include "/usr/include/umps3/umps/types.h"
-
-void uTLB_RefillHandler(); 
+#include "/usr/include/umps3/umps/types.h" 
 
 void exceptionHandler(); 
 
@@ -25,5 +23,7 @@ int isInReadyQueue (pcb_t* destination);
 void systemcallHandler(state_t* exceptionState);
 
 void passUpOrDieHandler (int index);
+
+void uTLB_RefillHandler();
 
 #endif
