@@ -3,20 +3,7 @@ exceptions.c This module implements the TLB, Program Trap, and SYSCALL exception
 handlers. Furthermore, this module will contain the provided skeleton TLB-Refill event handler
 (e.g. uTLB_RefillHandler).
 */
-#include "/usr/include/umps3/umps/libumps.h"
-#include "/usr/include/umps3/umps/const.h"
-#include "/usr/include/umps3/umps/cp0.h"
-#include "/usr/include/umps3/umps/arch.h"
-#include "/usr/include/umps3/umps/types.h"
-
-#include "./headers/initial.h"
-#include "./headers/interrupts.h"
-#include "./headers/scheduler.h"
-#include "./headers/ssi.h"
-
-#include "../phase1/headers/msg.h"
-#include "../phase1/headers/pcb.h"
-
+#include "./headers/exceptions.h"
 
 // Exception handler function
 void exceptionHandler() {
@@ -38,6 +25,7 @@ void exceptionHandler() {
             break;
     }
 }
+
 
 int isInPcbFree_h (pcb_t* destination) {
     struct pcb_t* iter;
@@ -65,6 +53,7 @@ int isInReadyQueue (pcb_t* destination) {
     // Il processo di destinazione non è nella ready queue
     return 0;
 }
+
 
 void systemcallHandler(state_t* exceptionState) {
      if ((~STATUS_KUp) & (reg_a0>=(-2) & reg_a0<=(-1))){ 
