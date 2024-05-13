@@ -16,10 +16,6 @@
 
 void exceptionHandler(); 
 
-int isInPcbFree_h (pcb_t* destination);
-
-int isInReadyQueue (pcb_t* destination);
-
 void systemcallHandler(state_t* exceptionState);
 
 void passUpOrDieHandler (int index);

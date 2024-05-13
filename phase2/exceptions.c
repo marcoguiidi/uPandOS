@@ -5,7 +5,9 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 */
 #include "./headers/exceptions.h"
 #include "headers/misc.h"
+#include "headers/initial.h"
 #include "../phase1/headers/msg.h"
+#include "headers/scheduler.h"
 #include <umps3/umps/libumps.h>
 
 // Exception handler function
@@ -42,90 +44,108 @@ void exceptionHandler() {
 }
 
 
-int isInPcbFree_h (pcb_t* destination) {
-    struct pcb_t* iter;
-    // itero sugli elementi della lista pcbFree_h
-    LIST_FOREACH(iter, &pcbFree_h, p_list) {
-        // confronto l'indirizzo del PCB del processo di destinazione con gli indirizzi dei PCB nella lista
-        if (iter == destination) {
-            // Il processo di destinazione è nella lista pcbFree_h
-            return 1;
-        }
-    }
-    // Il processo di destinazione non è nella lista pcbFree_h
-    return 0;
+int isInPcbFree_h(unsigned int pid) {
+    return is_pid_in_list(pid, &pcbFree_h);
 }
-int isInReadyQueue (pcb_t* destination) {
-    struct pcb_t* iter;
-    // itero sugli elementi della lista pcbFree_h
-    LIST_FOREACH(iter, &ready_queue, p_list) {
-        // confronto l'indirizzo del PCB del processo di destinazione con gli indirizzi dei PCB nella lista
-        if (iter == destination) {
-            // Il processo di destinazione è nella ready queue
-            return 1;
-        }
+
+int isInBlocked_pcbs(unsigned int pid) {
+    for (int i = 0; i < SEMDEVLEN; i++) {
+        if (is_pid_in_list(pid, &blocked_pcbs[i])) return 1;
     }
-    // Il processo di destinazione non è nella ready queue
     return 0;
 }
 
+pcb_t* getBlocked_pcbs(unsigned int pid) {
+    for (int i = 0; i < SEMDEVLEN; i++) {
+        pcb_t* pbc = get_pid_in_list(pid, &blocked_pcbs[i]);
+        if (pbc != NULL) return pbc;
+    }
+    return NULL;
+}
 
 void systemcallHandler(state_t* exceptionState) {
     // syscall
-    int regA0 = exceptionState->reg_a0;
+    int reg_A0 = exceptionState->reg_a0;
     // process
-    int regA1 = exceptionState->reg_a1;
+    unsigned int reg_A1 = exceptionState->reg_a1;
     // payload
-    int reg_A = exceptionState->reg_a2;
+    int reg_A2 = exceptionState->reg_a2;
+
     msg_t *msg;
-     if (reg_A == -1 || reg_A == -2){   
-        switch (reg_A) {
-            case SENDMESSAGE:
 
-            msg_t res = headMessage(destination);
-            if (res->m_payload==payload) {
-                //messaggio arrivato
-                exceptionState->v0 = 0;
-            }
-             else if (isInPcbFree_h(destination) == 1) {
-                 //il processo di destinazione è nella lista pcbFree_h
-                exceptionState->v0 = DEST_NOT_EXIST;     
-            }
-            else if (isInReadyQueue(destination)) {
-                //il processo di destinazione è nella ready queue
-                pushMessage(destination, payload);
-            }
-            else if (emptyMessageQ(destination)==1){ 
-                //il processo attende un messaggio
-                  insertProcQ(ready_queue, destination);
-            } else {
-                 return (MSGNOGOOD);
-            }
-                break;
-
-            case RECEIVEMESSAGE:
-            reg_a0 = -2;
-            reg_a1=pcb_t* sender;
-            reg_a2= NULL;//perchè il payload viene ignorato (0 nella chiamata)
-            if (reg_a1 == ANYMESSAGE){
-                    if (emptyMessageQ(sender) == 1){    
-                    /*If a1 contains a ANYMESSAGE pointer, then the requesting process 
-                    is looking for the first message in its inbox, without any restriction 
-                    about the sender. In this case it will be frozen only if the queue is empty,
-                    and the first message sent to it will wake up it and put it in the Ready Queue????.*/
-                    return gerPRID();
-                }
-                return (headMessage(sender)->m_payload);
-            } 
-            SYSCALL(RECEIVEMESSAGE, sender, (unsigned int)payload, 0);
-            
-                break;
-        }
     
-    } else { //user mode
-        Cause.ExcCode(BIOS_DATA_PAGE_BASE)= RI; // Set ExcCode to Reserved Instruction
-        passUpOrDieHandler(GENERALEXCEPT); 
+    switch (reg_A0) {
+        case SENDMESSAGE:
+            ;
+            pcb_t* dest_process = (pcb_t*)reg_A1;
+            
+            if (reg_A1 == 0) {
+                exceptionState->reg_a0 = DEST_NOT_EXIST; // reg v0 ?? a0 ?
+                break;
+            }
+            if (isInPcbFree_h(dest_process->p_pid)) {
+                //il processo di destinazione è nella lista pcbFree_h
+                exceptionState->reg_a0 = DEST_NOT_EXIST;  
+                break;   
+            }
+            // alloco messaggio
+            msg = allocMsg();
+            if (msg == NULL) {
+                exceptionState->reg_a0 = MSGNOGOOD; // messaggi liberi esauriti
+                break;                
+            }
+            msg->m_payload = (unsigned)reg_A0;
+            msg->m_sender = current_process;
+            if (isInBlocked_pcbs(dest_process->p_pid)) {
+                // is waiting, unblock it
+                insertProcQ(&ready_queue, getBlocked_pcbs(dest_process->p_pid));
+                soft_block_count--;
+            }
+            // add message to dest
+            insertMessage(&dest_process->msg_inbox, msg);
+            exceptionState->reg_a0 = 0; // succes
+
+            // reuturn from non bloking
+            exceptionState->pc_epc += WORDLEN;
+            LDST(exceptionState);
+            break;
+
+        case RECEIVEMESSAGE:
+            ;
+            pcb_t *sender_process = (pcb_PTR)reg_A1;
+            msg = popMessage(&current_process->msg_inbox, sender_process);
+            
+            // no message, wait
+            if (msg == NULL) {
+                // is running, put in waiting state
+                insertProcQ(&blocked_pcbs[BLOKEDRECV], current_process);
+                soft_block_count++;
+                // copy state
+                copy_state_t(exceptionState, &(current_process->p_s));
+                // TODO: TIMER
+                
+                // call the scheduler
+                scheduler();
+                return; // non ci deve mai andare
+            }
+
+            // return the payload
+            exceptionState->reg_a0 = (unsigned int)msg->m_sender;
+
+            if (reg_A2 != 0) {
+                // has a payload
+                *((unsigned int*)reg_A2) = (unsigned int)msg->m_payload;
+            }
+            break;
+        
+        default:
+            // invalid syscalkl
+            // TODO: trap
+            break;
     }
+    // reuturn from non bloking
+    exceptionState->pc_epc += WORDLEN;
+    LDST(exceptionState);
 }
 
 

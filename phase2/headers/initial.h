@@ -16,6 +16,11 @@ extern struct list_head ready_queue;
 extern pcb_t* current_process;
 
 #define PSEUDO_CLOCK_BLOCKED SEMDEVLEN - 1
+
+/*
+blocked_pcbs[0] = blocked pcbs for recvmessage
+*/
+#define BLOKEDRECV 0
 extern struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
 
 
