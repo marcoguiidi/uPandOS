@@ -4,21 +4,36 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 (e.g. uTLB_RefillHandler).
 */
 #include "./headers/exceptions.h"
+#include "headers/misc.h"
+#include "../phase1/headers/msg.h"
+#include <umps3/umps/libumps.h>
 
 // Exception handler function
 void exceptionHandler() {
     // Perform a multi-way branch depending on the cause of the exception
-    switch ((getCAUSE() >> CAUSESHIFT) & GETEXECCODE) {
-        case EXC_INT:
-            interruptHandler();
+    
+    unsigned int status = getSTATUS();
+    unsigned int cause  = getCAUSE();
+    unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);
+    state_t *exception_state = (state_t *)BIOSDATAPAGE;
+
+    unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
+    switch (ExcCode) {
+        case IOINTERRUPTS:
+            interruptHandler(); // TODO:
             break;
-        case EXC_MOD:
-        case EXC_TLBL:
-        case EXC_TLBS:
+        case EXC_MOD: // phase 3
+            break;
+        case EXC_TLBL: // phase 3
+            break;
+        case EXC_TLBS: // phase 3
             passUpOrDieHandler(PGFAULTEXCEPT);            
             break;
-        case EXC_SYS:
-            systemcallHandler(EXCEPTION_STATE);
+        case SYSEXCEPTION:
+            if (was_in_kernel_mode)
+                systemcallHandler(exception_state);
+            else
+                ; // TODO trap
             break;
         default: //4-7, 9-12
             passUpOrDieHandler(GENERALEXCEPT);            
@@ -56,15 +71,18 @@ int isInReadyQueue (pcb_t* destination) {
 
 
 void systemcallHandler(state_t* exceptionState) {
-     if ((~STATUS_KUp) & (reg_a0>=(-2) & reg_a0<=(-1))){ 
-        unsigned int syscallCode = CAUSE_GET_EXCCODE(exceptionState->pc_epc);  
-        switch (syscallCode) {
+    // syscall
+    int regA0 = exceptionState->reg_a0;
+    // process
+    int regA1 = exceptionState->reg_a1;
+    // payload
+    int reg_A = exceptionState->reg_a2;
+    msg_t *msg;
+     if (reg_A == -1 || reg_A == -2){   
+        switch (reg_A) {
             case SENDMESSAGE:
-            reg_a0 = -1;
-            reg_a2 = (unsigned int) payload;
-            pcb_t* reg_a1 = pcb_t* destination;
-            SYSCALL(SENDMESSAGE(destination, payload, 0));
-            msg_PTR res = headMessage(destination);
+
+            msg_t res = headMessage(destination);
             if (res->m_payload==payload) {
                 //messaggio arrivato
                 exceptionState->v0 = 0;

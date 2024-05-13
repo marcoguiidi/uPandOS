@@ -1,12 +1,12 @@
 #ifndef EXCEPTIONS_H_INCLUDED
 #define EXCEPTIONS_H_INCLUDED
 
-#include "../phase1/headers/msg.h"
-#include "../phase1/headers/pcb.h"
+#include "../../phase1/headers/msg.h"
+#include "../../phase1/headers/pcb.h"
 
-#include "./headers/initial.h"
-#include "./headers/scheduler.h"
-#include "./headers/ssi.h"
+#include "initial.h"
+#include "scheduler.h"
+#include "ssi.h"
 
 #include "/usr/include/umps3/umps/libumps.h"
 #include "/usr/include/umps3/umps/const.h"
