@@ -43,26 +43,6 @@ void exceptionHandler() {
     }
 }
 
-
-int isInPcbFree_h(unsigned int pid) {
-    return is_pid_in_list(pid, &pcbFree_h);
-}
-
-int isInBlocked_pcbs(unsigned int pid) {
-    for (int i = 0; i < SEMDEVLEN; i++) {
-        if (is_pid_in_list(pid, &blocked_pcbs[i])) return 1;
-    }
-    return 0;
-}
-
-pcb_t* getBlocked_pcbs(unsigned int pid) {
-    for (int i = 0; i < SEMDEVLEN; i++) {
-        pcb_t* pbc = get_pid_in_list(pid, &blocked_pcbs[i]);
-        if (pbc != NULL) return pbc;
-    }
-    return NULL;
-}
-
 void systemcallHandler(state_t* exceptionState) {
     // syscall
     int reg_A0 = exceptionState->reg_a0;
@@ -80,18 +60,18 @@ void systemcallHandler(state_t* exceptionState) {
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
             if (reg_A1 == 0) {
-                exceptionState->reg_a0 = DEST_NOT_EXIST; // reg v0 ?? a0 ?
+                exceptionState->reg_v0 = DEST_NOT_EXIST; // reg v0 ?? a0 ?
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
                 //il processo di destinazione è nella lista pcbFree_h
-                exceptionState->reg_a0 = DEST_NOT_EXIST;  
+                exceptionState->reg_v0 = DEST_NOT_EXIST;  
                 break;   
             }
             // alloco messaggio
             msg = allocMsg();
             if (msg == NULL) {
-                exceptionState->reg_a0 = MSGNOGOOD; // messaggi liberi esauriti
+                exceptionState->reg_v0 = MSGNOGOOD; // messaggi liberi esauriti
                 break;                
             }
             msg->m_payload = (unsigned)reg_A0;
@@ -103,7 +83,7 @@ void systemcallHandler(state_t* exceptionState) {
             }
             // add message to dest
             insertMessage(&dest_process->msg_inbox, msg);
-            exceptionState->reg_a0 = 0; // succes
+            exceptionState->reg_v0 = 0; // succes
 
             // reuturn from non bloking
             exceptionState->pc_epc += WORDLEN;
@@ -130,7 +110,7 @@ void systemcallHandler(state_t* exceptionState) {
             }
 
             // return the payload
-            exceptionState->reg_a0 = (unsigned int)msg->m_sender;
+            exceptionState->reg_v0 = (unsigned int)msg->m_sender;
 
             if (reg_A2 != 0) {
                 // has a payload
@@ -157,14 +137,22 @@ void uTLB_RefillHandler() {
 }
 
 
-void passUpOrDieHandler (int index) {
-  if (current_process->p_supportStruct == NULL){
-      terminateprocess(current_process);
-      scheduler();
-    }
-    else{
-        current_process->p_supportStruct->sup_exceptState[index] = *EXCEPTION_STATE;
-        context_t cont = currentProcess->p_supportStruct->sup_exceptContext[index];
-        LDCXT (cont.c_stackPtr, cont.c_status, cont.c_pc);
-    }
+void TrapExceptionHandler(state_t *exec_state) { passUpOrDie(GENERALEXCEPT, exec_state); }
+void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_state); }
+
+void passUpOrDie(unsigned type, state_t *exec_state) {
+  if (current_process == NULL || current_process->p_supportStruct == NULL) {
+    // then the process and the progeny of the process must be terminated
+    process_kill(current_process);
+    scheduler();
+    return;
+  }
+  // salva lo stato del processo
+  copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
+  // fare roba cpu time TODO: asd
+  
+  
+  // passa l'eccezione
+  context_t context_pass_to = current_process->p_supportStruct->sup_exceptContext[type];
+  LDCXT(context_pass_to.stackPtr, context_pass_to.status, context_pass_to.pc);
 }

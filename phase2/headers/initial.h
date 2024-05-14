@@ -34,8 +34,7 @@ extern unsigned int lastpid;
 /**
 return a not used pid
 */
-unsigned int new_pid();
-void process_spawn(pcb_t* process);
-void process_kill(pcb_t*  process);
+
+
 
 #endif

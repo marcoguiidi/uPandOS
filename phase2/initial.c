@@ -11,6 +11,7 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 #include "./headers/interrupts.h"
 #include "./headers/scheduler.h"
 #include "./headers/ssi.h"
+#include "headers/misc.h"
 
 
 #include "../phase1/headers/msg.h"
@@ -31,28 +32,6 @@ unsigned int lastpid = 0;
 
 pcb_t* ssi_pcb;
 
-unsigned int new_pid() {
-    unsigned int new_pid = lastpid;
-    lastpid++;
-    return new_pid;
-}
-
-void process_spawn(pcb_t *process) {
-    process->p_pid = new_pid();
-    insertProcQ(&ready_queue, process);
-    process_count++;
-}
-
-void process_kill(pcb_t *process) {
-    if (outProcQ(&ready_queue, process) == NULL) { //not in ready queue
-        // check blocked pbc
-        for (int i = 0; i < SEMDEVLEN; i++) {
-            if (outProcQ(&blocked_pcbs[i], process) != NULL) break; // found it
-        }
-    }
-    freePcb(process);
-    process_count--;
-}
 
 int main(void) {
     /*

@@ -22,4 +22,6 @@ void passUpOrDieHandler (int index);
 
 void uTLB_RefillHandler();
 
+void passUpOrDie(unsigned type, state_t *exec_state);
+
 #endif

@@ -1,4 +1,5 @@
 #include "headers/misc.h"
+#include "headers/initial.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
@@ -42,4 +43,66 @@ void copy_state_t(state_t* src, state_t* dest) {
     for (int i = 0; i < STATE_GPR_LEN; i++) {
         dest->gpr[i] = src->gpr[i];
     }
+}
+
+void process_kill(pcb_t *process) {
+    if (outProcQ(&ready_queue, process) == NULL) { //not in ready queue
+        // check blocked pbc
+        for (int i = 0; i < SEMDEVLEN; i++) {
+            if (outProcQ(&blocked_pcbs[i], process) != NULL) {
+                soft_block_count--;
+                break; // found it
+            }
+        }
+    } else {
+        process_count--;
+    }
+    freePcb(process);
+}
+
+unsigned int new_pid() {
+    unsigned int new_pid = lastpid;
+    lastpid++;
+    return new_pid;
+}
+
+void process_spawn(pcb_t *process) {
+    process->p_pid = new_pid();
+    insertProcQ(&ready_queue, process);
+    process_count++;
+}
+
+void terminateprocess(pcb_t* process) {
+    while (!emptyChild(process)) {
+        pcb_t* child = removeChild(process);
+        terminateprocess(child);
+    }
+    process_kill(process);
+}
+
+int isInPcbFree_h(unsigned int pid) {
+    return is_pid_in_list(pid, &pcbFree_h);
+}
+
+int isInBlocked_pcbs(unsigned int pid) {
+    for (int i = 0; i < SEMDEVLEN; i++) {
+        if (is_pid_in_list(pid, &blocked_pcbs[i])) return 1;
+    }
+    return 0;
+}
+
+pcb_t* getBlocked_pcbs(unsigned int pid) {
+    for (int i = 0; i < SEMDEVLEN; i++) {
+        pcb_t* pbc = get_pid_in_list(pid, &blocked_pcbs[i]);
+        if (pbc != NULL) return pbc;
+    }
+    return NULL;
+}
+
+pcb_t* pid_to_pcb(unsigned int pid) {
+    pcb_t* pbc;
+    if ((pbc = get_pid_in_list(pid, &pcbFree_h)) == NULL) {
+        pbc = getBlocked_pcbs(pid);
+    }
+    return pbc;
 }
