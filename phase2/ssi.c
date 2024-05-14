@@ -4,6 +4,7 @@ ssi.c This module implements the System Service Interface process.
 
 #include "./headers/ssi.h"
 #include "./headers/initial.h"
+#include "./headers/misc.h"
 #include "headers/interrupts.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
@@ -11,22 +12,7 @@ ssi.c This module implements the System Service Interface process.
 /**
 terminate the proces pointed by process and its progeny
 */
-void terminateprocess(pcb_t* process) {
-    while (!emptyChild(process)) {
-        pcb_t* child = removeChild(process);
-        terminateprocess(child);
-    }
-    process_kill(process);
-}
 
-pcb_t* pid_to_pcb(unsigned int pid) {
-    pcb_t* tmp;
-    list_for_each_entry(tmp, &ready_queue, p_list) {
-        if (tmp->p_pid == pid)
-            return tmp;
-    }
-    return NULL; // non ci deve mai andare
-}
 
 void SSI_function_entry_point() {
     unsigned int payload;
