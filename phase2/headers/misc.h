@@ -32,4 +32,9 @@ int isInBlocked_pcbs(unsigned int pid);
 
 pcb_t* getBlocked_pcbs(unsigned int pid);
 
+/*
+* return the blocked queue number associated at the device/interruptline
+*/
+int calcBlockedQueueNo(int interruptline, int devno);
+
 #endif

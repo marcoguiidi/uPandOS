@@ -106,3 +106,7 @@ pcb_t* pid_to_pcb(unsigned int pid) {
     }
     return pbc;
 }
+
+int calcBlockedQueueNo(int interruptline, int devno) {
+    return (interruptline-3) + devno;
+}

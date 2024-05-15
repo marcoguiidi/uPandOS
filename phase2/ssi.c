@@ -9,10 +9,20 @@ ssi.c This module implements the System Service Interface process.
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 
-/**
-terminate the proces pointed by process and its progeny
-*/
 
+int devAddrBase_get_IntlineNo_DevNo(unsigned int devAddrBase, int* IntlineNo, int* DevNo) {
+    // bruteforce da cambiare magari
+    for (int intlineno = 0; intlineno <= 8; intlineno++) {
+        for (int devno = 0; devno <= DEV7ON; devno++) {
+            if (devAddrBase == (0x10000054 + ((intlineno - 3) * 0x80) + (devno * 0x10))) {
+                *IntlineNo = intlineno;
+                *DevNo = devno;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
 
 void SSI_function_entry_point() {
     unsigned int payload;
@@ -58,12 +68,13 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ;
             ssi_payload_t* payload = (ssi_payload_t*) arg;
             ssi_do_io_t* doio = payload->arg;
-            int devno = calcDevNo(doio->commandAddr);
-            // devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
+            int devno;
+            int intlineno;
+            devAddrBase_get_IntlineNo_DevNo(doio->commandAddr, &intlineno, &devno);
 
             pcb_t* suspended_process = outProcQ(&ready_queue, sender);
             // save it on the corrisponding device
-            insertProcQ(&blocked_pcbs[devno], suspended_process);
+            insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
             *doio->commandAddr = doio->commandValue;
             /*
@@ -73,6 +84,8 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             * an interrupt exception should be raised by the CPU; ???
             given the cause code, the interrupt handler should understand which device triggered the TRAP;
             check the status and send to the device an acknowledge (setting the device command address to ACK);
+            
+            ci pensano gli interrups a mandare la risposta del device
             */
 
             // ...
