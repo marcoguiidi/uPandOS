@@ -103,13 +103,10 @@ void nonTimerInterrupt(int line){
     if (msg == NULL) { // messaggi finiti
         // TODO
     }
-    msg->m_payload = 0; // ? lo stato che ritorna il device
+    msg->m_payload = statusCode; // ? lo stato che ritorna il device
     msg->m_sender = ssi_pcb;
     pushMessage(&unblocked->msg_inbox, msg);
-    insertProcQ(&ready_queue, unblocked);
-    soft_block_count--;
     // TODO
-
 
     /* 5
     * place saved status code in unblocked pcb's v0 register
@@ -120,6 +117,7 @@ void nonTimerInterrupt(int line){
     * insert newly unblocked pcb in ready queue
     */
     insertProcQ(&ready_queue, unblocked);
+    soft_block_count--;
 
     /* 7
      * return control to current process

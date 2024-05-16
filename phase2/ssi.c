@@ -25,16 +25,12 @@ int devAddrBase_get_IntlineNo_DevNo(unsigned int devAddrBase, int* IntlineNo, in
 }
 
 void SSI_function_entry_point() {
-    unsigned int payload;
-    unsigned int pid_sender;
+    ssi_payload_t* payload;
     pcb_t* sender;
-    msg_t* msgin;
     while (TRUE) {
-        pid_sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, payload, 0);
-        sender = pid_to_pcb(pid_sender);
-        // current_process now is SSI
-        msgin = popMessage(&current_process->msg_inbox, NULL); // get message from ANY
-        SSIRequest(sender, sender->p_s.reg_a2, (void*)payload);
+        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (memaddr)(&payload), 0);
+        
+        SSIRequest(sender, payload->service_code, payload->arg);
     }
 }
 
