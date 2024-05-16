@@ -28,7 +28,7 @@ struct list_head blocked_pcbs[BLOCKED_QUEUE_NUM]; // last one is for the Pseudo-
 
 passupvector_t* passupvector = PASSUPVECTOR;
 
-unsigned int lastpid = 0;
+unsigned int lastpid = 1;
 
 pcb_t* ssi_pcb;
 

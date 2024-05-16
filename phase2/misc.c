@@ -7,6 +7,13 @@
 #include "../phase1/headers/pcb.h"
 
 
+int IN_KERNEL_MODE(unsigned int status) {
+    if ((status & STATUS_KUc) == 0) 
+        return TRUE;
+    else
+        return FALSE;
+}
+
 pcb_t* get_pid_in_list(unsigned int pid, struct list_head* list) {
     pcb_t* tmp;
     list_for_each_entry(tmp, list, p_list) {
