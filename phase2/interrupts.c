@@ -137,7 +137,7 @@ void PLTinterrupt(){
     * copy processor state in current process
     */
     state_t *saved = BIOSDATAPAGE;
-    current_process->p_s = *saved;
+    copy_state_t(saved, &current_process->p_s);
 
     /* 3
     * place current process in ready queue
