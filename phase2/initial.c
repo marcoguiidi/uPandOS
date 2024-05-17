@@ -63,9 +63,9 @@ int main(void) {
     */
     process_count = 0;
     soft_block_count = 0;
-    mkEmptyProcQ(&ready_queue);
+    INIT_LIST_HEAD(&ready_queue);
     current_process = NULL;
-    for (int i = 0; i < SEMDEVLEN; i++) {
+    for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
         INIT_LIST_HEAD(&blocked_pcbs[i]);
     }
 
@@ -92,14 +92,21 @@ int main(void) {
     */
     ssi_pcb = allocPcb();
     /*
-    p.25 of uMPS3princOfOperations.pdf 
+    Set all the Process Tree fields: alredy enitializewted
     */
-    ssi_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
-    RAMTOP(ssi_pcb->p_s.reg_sp);
-    ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-    ssi_pcb->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
     ssi_pcb->p_time = 0;
     ssi_pcb->p_supportStruct = NULL;
+    /*
+    p.25 of uMPS3princOfOperations.pdf 
+    */
+    ssi_pcb->p_s.status = (STATUS_IEp ) & (~STATUS_KUp);
+    RAMTOP(ssi_pcb->p_s.reg_sp);
+    /*
+    For rather technical reasons, whenever one assigns a value to the PC one must also assign the
+    same value to the general purpose register t9 (a.k.a. s_t9 as defined in types.h)
+    */
+    ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+    ssi_pcb->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
 
     process_spawn(ssi_pcb);
 
@@ -110,8 +117,9 @@ int main(void) {
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */
-    test_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(test_pcb->p_s.reg_sp) - (2 * PAGESIZE); // FRAMESIZE è pagesize, sbagiate le specifiche
+    test_pcb->p_s.status = ( STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
+    RAMTOP(test_pcb->p_s.reg_sp); // FRAMESIZE è pagesize, sbagiate le specifiche
+    test_pcb->p_s.reg_sp -= 2 * PAGESIZE; /*the SP set to RAMTOP - (2 * FRAMESIZE)*/
     test_pcb->p_s.pc_epc = (memaddr) test;
     test_pcb->p_s.reg_t9 = (memaddr) test;
     test_pcb->p_time = 0;
