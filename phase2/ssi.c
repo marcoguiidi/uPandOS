@@ -35,7 +35,6 @@ void SSI_function_entry_point() {
 }
 
 void SSIRequest(pcb_t* sender, int service, void* arg) {
-
     switch (service) {
         case CREATEPROCESS:
             ;
@@ -73,16 +72,6 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
             *doio->commandAddr = doio->commandValue;
-            /*
-            * every process should now be in a blocked state as everyone is waiting for a task to end, so the
-                the scheduler should call the WAIT() function; Important: The current process must be set to
-                NULL and all interrupts must be ON; ???
-            * an interrupt exception should be raised by the CPU; ???
-            given the cause code, the interrupt handler should understand which device triggered the TRAP;
-            check the status and send to the device an acknowledge (setting the device command address to ACK);
-            
-            ci pensano gli interrups a mandare la risposta del device
-            */
 
             // ...
             break;
@@ -119,4 +108,5 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             terminateprocess(sender);
             break;
     }
+    
 }

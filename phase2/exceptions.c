@@ -8,7 +8,37 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "headers/initial.h"
 #include "../phase1/headers/msg.h"
 #include "headers/scheduler.h"
+#include "headers/interrupts.h"
 #include <umps3/umps/libumps.h>
+
+
+void uTLB_RefillHandler() {
+    setENTRYHI(0x80000000);
+    setENTRYLO(0x00000000);
+    TLBWR();
+    LDST((state_t*) 0x0FFFF000);
+}
+
+
+void TrapExceptionHandler(state_t *exec_state) { passUpOrDie(GENERALEXCEPT, exec_state); }
+void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_state); }
+
+void passUpOrDie(unsigned type, state_t *exec_state) {
+  if (current_process == NULL || current_process->p_supportStruct == NULL) {
+    // then the process and the progeny of the process must be terminated
+    process_kill(current_process);
+    scheduler();
+    return;
+  }
+  // salva lo stato del processo
+  copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
+  // fare roba cpu time TODO: asd
+  
+  
+  // passa l'eccezione
+  context_t context_pass_to = current_process->p_supportStruct->sup_exceptContext[type];
+  LDCXT(context_pass_to.stackPtr, context_pass_to.status, context_pass_to.pc);
+}
 
 // Exception handler function
 void exceptionHandler() {
@@ -25,11 +55,13 @@ void exceptionHandler() {
             interruptHandler(); // TODO:
             break;
         case EXC_MOD: // phase 3
+            TLBExceptionHandler(exception_state);
             break;
         case EXC_TLBL: // phase 3
+            TLBExceptionHandler(exception_state);
             break;
         case EXC_TLBS: // phase 3
-            passUpOrDieHandler(PGFAULTEXCEPT);            
+            TLBExceptionHandler(exception_state);         
             break;
         case SYSEXCEPTION:
             if (was_in_kernel_mode)
@@ -38,7 +70,7 @@ void exceptionHandler() {
                 ; // TODO trap
             break;
         default: //4-7, 9-12
-            passUpOrDieHandler(GENERALEXCEPT);            
+            TrapExceptionHandler(exception_state);            
             break;
     }
 }
@@ -126,33 +158,4 @@ void systemcallHandler(state_t* exceptionState) {
     // reuturn from non bloking
     exceptionState->pc_epc += WORDLEN;
     LDST(exceptionState);
-}
-
-
-void uTLB_RefillHandler() {
-    setENTRYHI(0x80000000);
-    setENTRYLO(0x00000000);
-    TLBWR();
-    LDST((state_t*) 0x0FFFF000);
-}
-
-
-void TrapExceptionHandler(state_t *exec_state) { passUpOrDie(GENERALEXCEPT, exec_state); }
-void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_state); }
-
-void passUpOrDie(unsigned type, state_t *exec_state) {
-  if (current_process == NULL || current_process->p_supportStruct == NULL) {
-    // then the process and the progeny of the process must be terminated
-    process_kill(current_process);
-    scheduler();
-    return;
-  }
-  // salva lo stato del processo
-  copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
-  // fare roba cpu time TODO: asd
-  
-  
-  // passa l'eccezione
-  context_t context_pass_to = current_process->p_supportStruct->sup_exceptContext[type];
-  LDCXT(context_pass_to.stackPtr, context_pass_to.status, context_pass_to.pc);
 }
