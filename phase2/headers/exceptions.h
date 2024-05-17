@@ -18,7 +18,7 @@ void exceptionHandler();
 
 void systemcallHandler(state_t* exceptionState);
 
-void passUpOrDieHandler (int index);
+/*void passUpOrDieHandler (int index);*/
 
 void uTLB_RefillHandler();
 

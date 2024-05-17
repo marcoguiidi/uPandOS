@@ -75,6 +75,6 @@ Note that the element pointed to by p could be in an arbitrary position
 */
 pcb_t *outChild(pcb_t *p);
 
-extern list_head pcbFree_h;
+extern struct list_head pcbFree_h;
 
 #endif

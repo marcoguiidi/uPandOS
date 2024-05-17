@@ -2,11 +2,12 @@
 #define MISC_H
 
 #include <umps3/umps/const.h>
+#include <umps3/umps/cp0.h>
 #include <umps3/umps/libumps.h>
 #include "../../phase1/headers/msg.h"
 #include "../../phase1/headers/pcb.h"
 
-#define IN_KERNEL_MODE(status)  (!((status) & STATUS_KUc))
+int IN_KERNEL_MODE(unsigned int status);
 
 pcb_t* get_pid_in_list(unsigned int pid, struct list_head* list);
 
@@ -31,5 +32,10 @@ int isInPcbFree_h(unsigned int pid);
 int isInBlocked_pcbs(unsigned int pid);
 
 pcb_t* getBlocked_pcbs(unsigned int pid);
+
+/*
+* return the blocked queue number associated at the device/interruptline
+*/
+int calcBlockedQueueNo(int interruptline, int devno);
 
 #endif
