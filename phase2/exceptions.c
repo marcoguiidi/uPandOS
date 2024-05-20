@@ -46,7 +46,7 @@ void exceptionHandler() {
     
     unsigned int status = getSTATUS();
     unsigned int cause  = getCAUSE();
-    unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);
+    unsigned int ExcCode = (cause & GETEXECCODE) >> CAUSESHIFT;
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
 
     unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
@@ -92,7 +92,7 @@ void systemcallHandler(state_t* exceptionState) {
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
             if (reg_A1 == 0) {
-                exceptionState->reg_v0 = DEST_NOT_EXIST; // reg v0 ?? a0 ?
+                exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
@@ -106,11 +106,11 @@ void systemcallHandler(state_t* exceptionState) {
                 exceptionState->reg_v0 = MSGNOGOOD; // messaggi liberi esauriti
                 break;                
             }
-            msg->m_payload = (unsigned)reg_A0;
+            msg->m_payload = (unsigned int)reg_A2;
             msg->m_sender = current_process;
-            if (isInBlocked_pcbs(dest_process->p_pid)) {
+            if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // is blocked
                 // is waiting, unblock it
-                insertProcQ(&ready_queue, getBlocked_pcbs(dest_process->p_pid));
+                insertProcQ(&ready_queue, dest_process);
                 soft_block_count--;
             }
             // add message to dest
@@ -145,14 +145,13 @@ void systemcallHandler(state_t* exceptionState) {
             exceptionState->reg_v0 = (unsigned int)msg->m_sender;
 
             if (reg_A2 != 0) {
-                // has a payload
+                // save message if has one
                 *((unsigned int*)reg_A2) = (unsigned int)msg->m_payload;
             }
             break;
         
         default:
-            // invalid syscalkl
-            // TODO: trap
+            TrapExceptionHandler(exceptionState);
             break;
     }
     // reuturn from non bloking

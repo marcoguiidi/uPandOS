@@ -37,7 +37,7 @@ kernel.core.umps : kernel
 
 #kernel : ./phase1/p1test.o ./phase1/msg.o ./phase1/pcb.o crtso.o libumps.o
 #	$(LD) -o $@ $^ $(LDFLAGS)
-kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o crtso.o libumps.o
+kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o ./klog.o crtso.o libumps.o
 	$(LD) -o $@ $^ $(LDFLAGS)
 
 clean :
