@@ -15,28 +15,26 @@ propriate messages for the blocked PCBs.
 void interruptHandler(){
     
     unsigned int cause = getCAUSE();
-    while(1){ // ciclo continuo dell'interrupt handler
-        int line=1; // parto da 1 così ottengo subito la priorità maggiore
-        while (line < 8){
-            if (cause & CAUSE_IP(line)){
-                break;
-            }
-            line++;
-        }
-
-        if (STATUS_IEc == 1 && STATUS_IM(line) == 1) {
-            // TODO generates interrupt exception
-        }
-
-            if (line > 2){
-                nonTimerInterrupt(line);
-        }else if (line == 1){
-            PLTinterrupt();
-        }else{
-            ITinterrupt();
-        }
-    }
     
+
+    int line=1; // parto da 1 così ottengo subito la priorità maggiore
+    while (line < 8){
+        if (cause & CAUSE_IP(line)){
+            if (STATUS_IEc == 1 && STATUS_IM(line) == 1) {
+                // TODO generates interrupt exception
+            }
+            if (line >= 3 && line <= 7){
+                nonTimerInterrupt(line);
+            }else if (line == 1){
+                PLTinterrupt();
+            }else if (line == 2){ // va sempre qua
+                ITinterrupt();
+            } else {
+                klog_print("interrupt not resolved");
+            }
+        }
+        line++;
+    }
 }
 
 
@@ -51,7 +49,7 @@ void nonTimerInterrupt(int line){
     int devNo;
 
     // switch case per ottenere indirizzo della word per ottenere poi il device number
-    switch (line + 3) {
+    switch (line) {
         case DISKINT:
             add = 0x1000002C;
             break;
@@ -80,9 +78,9 @@ void nonTimerInterrupt(int line){
     */
     unsigned int statusCode;
     unsigned int mask = 1u << 5;
-    devreg_t* devReg = devAddrBase;
+    devreg_t* devReg =  0x10000254; //devAddrBase;
     
-    if (line == 7){
+    /*if (line == 7){
         if (devReg->term.transm_status & mask){  // codice 5 nel campo status del device register del terminale
             statusCode = devReg->term.transm_status; 
             devReg->term.transm_command = ACK;
@@ -93,7 +91,9 @@ void nonTimerInterrupt(int line){
     }else{
         statusCode = devReg->dtp.status;
         devReg->dtp.command = ACK;
-    }
+    }*/
+    statusCode = devReg->term.transm_status; 
+    devReg->term.transm_command = ACK;
 
     /* 4
     * send message to unblock caller pcb
@@ -123,7 +123,6 @@ void nonTimerInterrupt(int line){
      * return control to current process
      */
      LDST(BIOSDATAPAGE);
-
 }
 
 void PLTinterrupt(){
@@ -161,13 +160,24 @@ void ITinterrupt(){
     * unblock all pcbs waiting a pseudo clock tick
     */
     pcb_t* pcb_to_unblock;
-    while ((pcb_to_unblock = removeProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK]))) {
+    while ((pcb_to_unblock = removeProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK])) != NULL) {
         insertProcQ(&ready_queue, pcb_to_unblock);
+        msg_PTR msg = allocMsg();
+        msg->m_sender = ssi_pcb;
+        msg->m_payload = 0;
+        insertMessage(&pcb_to_unblock->msg_inbox, msg);
+        soft_block_count--;
+    }
+
+    if (current_process == NULL) {
+        scheduler();
+        return;
     }
     
     /* 3
     * return control to current process
     */
+    
     LDST(BIOSDATAPAGE);
 }
 

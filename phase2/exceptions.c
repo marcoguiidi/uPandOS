@@ -26,7 +26,8 @@ void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_
 void passUpOrDie(unsigned type, state_t *exec_state) {
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     // then the process and the progeny of the process must be terminated
-    process_kill(current_process);
+    klog_print_dec(type);
+    process_kill(current_process); // qualcosa viene ammazzato :(((((((((((((())))))))))))))
     scheduler();
     return;
   }
@@ -70,7 +71,7 @@ void exceptionHandler() {
                 ; // TODO trap
             break;
         default: //4-7, 9-12
-            TrapExceptionHandler(exception_state);            
+            TrapExceptionHandler(exception_state); //non dovrebbe anda re qui ma ci va         
             break;
     }
 }

@@ -63,17 +63,23 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ;
             ssi_payload_t* payload = (ssi_payload_t*) arg;
             ssi_do_io_t* doio = payload->arg;
-            int devno;
-            int intlineno;
-            devAddrBase_get_IntlineNo_DevNo(doio->commandAddr, &intlineno, &devno);
 
-            pcb_t* suspended_process = outProcQ(&ready_queue, sender);
+            /*
+            uso sempre il terinale che è questo da mettere a posto
+            doio->commandAddr fa un exception
+            */
+            int devno = 0;
+            int intlineno = 7;
+            //devAddrBase_get_IntlineNo_DevNo(doio->commandAddr, &intlineno, &devno);
+
+            pcb_t* suspended_process = out_pcb_in_all(sender);
+            if (suspended_process == NULL) {
+                PANIC();
+            }
             // save it on the corrisponding device
             insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
             *doio->commandAddr = doio->commandValue;
-
-            // ...
             break;
         case GETTIME:
             ;
@@ -82,8 +88,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             break;
         case CLOCKWAIT:
             ;
-            // waiting pseudo-clock implementation
-            // TODO: WaitForClock
+            insertProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK], out_pcb_in_all(sender));
             break;
         case GETSUPPORTPTR:
             ;
