@@ -4,45 +4,37 @@ ssi.c This module implements the System Service Interface process.
 
 #include "./headers/ssi.h"
 #include "./headers/initial.h"
+#include "./headers/misc.h"
+#include "headers/interrupts.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 
-/**
-terminate the proces pointed by process and its progeny
-*/
-void terminateprocess(pcb_t* process) {
-    while (!emptyChild(process)) {
-        pcb_t* child = removeChild(process);
-        terminateprocess(child);
-    }
-    process_kill(process);
-}
 
-pcb_t* pid_to_pcb(unsigned int pid) {
-    pcb_t* tmp;
-    list_for_each_entry(tmp, &ready_queue, p_list) {
-        if (tmp->p_pid == pid)
-            return tmp;
+int devAddrBase_get_IntlineNo_DevNo(unsigned int devAddrBase, int* IntlineNo, int* DevNo) {
+    // bruteforce da cambiare magari
+    for (int intlineno = 0; intlineno <= 8; intlineno++) {
+        for (int devno = 0; devno <= DEV7ON; devno++) {
+            if (devAddrBase == (0x10000054 + ((intlineno - 3) * 0x80) + (devno * 0x10))) {
+                *IntlineNo = intlineno;
+                *DevNo = devno;
+                return 1;
+            }
+        }
     }
-    return NULL; // non ci deve mai andare
+    return 0;
 }
 
 void SSI_function_entry_point() {
-    unsigned int payload;
-    unsigned int pid_sender;
+    ssi_payload_t* payload;
     pcb_t* sender;
-    msg_t* msgin;
     while (TRUE) {
-        pid_sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, payload, 0);
-        sender = pid_to_pcb(pid_sender);
-        // current_process now is SSI
-        msgin = popMessage(&current_process->msg_inbox, NULL); // get message from ANY
-        SSIRequest(sender, sender->p_s.reg_a2, (void*)payload);
+        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (memaddr)(&payload), 0);
+        
+        SSIRequest(sender, payload->service_code, payload->arg);
     }
 }
 
 void SSIRequest(pcb_t* sender, int service, void* arg) {
-
     switch (service) {
         case CREATEPROCESS:
             ;
@@ -51,7 +43,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             if (newprocess == NULL) {
                 SYSCALL(SENDMESSAGE, sender, NOPROC, 0);
             } else {
-                newprocess->p_s = *data->state;
+                copy_state_t(data->state, &newprocess->p_s);
                 newprocess->p_supportStruct = data->support;
                 insertChild(sender, newprocess); // is child of sender
                 process_spawn(newprocess);
@@ -70,7 +62,18 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             // TODO: DoIO
             ;
             ssi_payload_t* payload = (ssi_payload_t*) arg;
-              
+            ssi_do_io_t* doio = payload->arg;
+            int devno;
+            int intlineno;
+            devAddrBase_get_IntlineNo_DevNo(doio->commandAddr, &intlineno, &devno);
+
+            pcb_t* suspended_process = outProcQ(&ready_queue, sender);
+            // save it on the corrisponding device
+            insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
+            soft_block_count++;
+            *doio->commandAddr = doio->commandValue;
+
+            // ...
             break;
         case GETTIME:
             ;

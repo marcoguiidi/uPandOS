@@ -11,6 +11,7 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 #include "./headers/interrupts.h"
 #include "./headers/scheduler.h"
 #include "./headers/ssi.h"
+#include "headers/misc.h"
 
 
 #include "../phase1/headers/msg.h"
@@ -22,32 +23,15 @@ int process_count = 0;
 int soft_block_count = 0;
 struct list_head ready_queue;
 pcb_t* current_process;
-struct list_head blocked_pcbs[SEMDEVLEN]; // last one is for the Pseudo-clock
+struct list_head blocked_pcbs[BLOCKED_QUEUE_NUM]; // last one is for the Pseudo-clock
 
 
 passupvector_t* passupvector = PASSUPVECTOR;
 
-unsigned int lastpid = 0;
+unsigned int lastpid = 1;
 
 pcb_t* ssi_pcb;
 
-unsigned int new_pid() {
-    unsigned int new_pid = lastpid;
-    lastpid++;
-    return new_pid;
-}
-
-void process_spawn(pcb_t *process) {
-    process->p_pid = new_pid();
-    insertProcQ(&ready_queue, process);
-    process_count++;
-}
-
-void process_kill(pcb_t *process) {
-    outProcQ(&ready_queue, process);
-    freePcb(process);
-    process_count--;
-}
 
 int main(void) {
     /*
@@ -79,9 +63,9 @@ int main(void) {
     */
     process_count = 0;
     soft_block_count = 0;
-    mkEmptyProcQ(&ready_queue);
+    INIT_LIST_HEAD(&ready_queue);
     current_process = NULL;
-    for (int i = 0; i < SEMDEVLEN; i++) {
+    for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
         INIT_LIST_HEAD(&blocked_pcbs[i]);
     }
 
@@ -108,14 +92,21 @@ int main(void) {
     */
     ssi_pcb = allocPcb();
     /*
-    p.25 of uMPS3princOfOperations.pdf 
+    Set all the Process Tree fields: alredy enitializewted
     */
-    ssi_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp ) & (~STATUS_KUp);
-    RAMTOP(ssi_pcb->p_s.reg_sp);
-    ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-    ssi_pcb->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
     ssi_pcb->p_time = 0;
     ssi_pcb->p_supportStruct = NULL;
+    /*
+    p.25 of uMPS3princOfOperations.pdf 
+    */
+    ssi_pcb->p_s.status = (STATUS_IEp ) & (~STATUS_KUp);
+    RAMTOP(ssi_pcb->p_s.reg_sp);
+    /*
+    For rather technical reasons, whenever one assigns a value to the PC one must also assign the
+    same value to the general purpose register t9 (a.k.a. s_t9 as defined in types.h)
+    */
+    ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+    ssi_pcb->p_s.reg_t9 = (memaddr) SSI_function_entry_point;
 
     process_spawn(ssi_pcb);
 
@@ -126,8 +117,9 @@ int main(void) {
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */
-    test_pcb->p_s.status = (ssi_pcb->p_s.status | STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(test_pcb->p_s.reg_sp) - (2 * PAGESIZE); // FRAMESIZE è pagesize, sbagiate le specifiche
+    test_pcb->p_s.status = ( STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
+    RAMTOP(test_pcb->p_s.reg_sp); // FRAMESIZE è pagesize, sbagiate le specifiche
+    test_pcb->p_s.reg_sp -= 2 * PAGESIZE; /*the SP set to RAMTOP - (2 * FRAMESIZE)*/
     test_pcb->p_s.pc_epc = (memaddr) test;
     test_pcb->p_s.reg_t9 = (memaddr) test;
     test_pcb->p_time = 0;

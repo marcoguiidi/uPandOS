@@ -19,7 +19,7 @@ UMPS3_INCLUDE_DIR = $(UMPS3_DIR_PREFIX)/include/umps3
 
 # Compiler options
 CFLAGS_LANG = -ffreestanding # -ansi
-CFLAGS_MIPS = -mips1 -mabi=32 -mno-gpopt -G 0 -mno-abicalls -fno-pic -mfp32
+CFLAGS_MIPS = -mips1 -mabi=32 -mno-gpopt -G 0 -mno-abicalls -fno-pic -mfp32 -nostdlib
 CFLAGS = $(CFLAGS_LANG) $(CFLAGS_MIPS) -I$(UMPS3_INCLUDE_DIR) -Wall -O0
 
 # Linker options
@@ -37,7 +37,7 @@ kernel.core.umps : kernel
 
 #kernel : ./phase1/p1test.o ./phase1/msg.o ./phase1/pcb.o crtso.o libumps.o
 #	$(LD) -o $@ $^ $(LDFLAGS)
-kernel : ./phase2/initial.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o crtso.o libumps.o
+kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o ./klog.o crtso.o libumps.o
 	$(LD) -o $@ $^ $(LDFLAGS)
 
 clean :

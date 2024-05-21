@@ -18,6 +18,7 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <umps/libumps.h>
+#include <umps3/umps/libumps.h>
 
 typedef unsigned int devregtr;
 
@@ -165,6 +166,7 @@ pcb_t *create_process(state_t *s)
     };
     SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)&payload, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p), 0);
+    // non ritorna l'eseguzione a lei
     return p;
 }
 
@@ -183,6 +185,7 @@ void test()
 
     if (sender != test_pcb)
         PANIC();
+    // :) PASS
 
     // init print process
     STST(&printstate);
@@ -195,7 +198,7 @@ void test()
 
     if ((int)print_pcb == NOPROC)
         PANIC();
-
+    // PASS :)
     // test print process
     print_term0("Don't Panic.\n");
 

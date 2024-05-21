@@ -5,14 +5,20 @@ propriate messages for the blocked PCBs.
 */
 
 #include "./headers/interrupts.h"
+#include "./headers/initial.h"
+#include "headers/misc.h"
+#include "headers/scheduler.h"
+#include <umps3/umps/const.h>
+#include <umps3/umps/libumps.h>
 
 
 void interruptHandler(){
     
+    unsigned int cause = getCAUSE();
     while(1){ // ciclo continuo dell'interrupt handler
         int line=1; // parto da 1 così ottengo subito la priorità maggiore
         while (line < 8){
-            if (CAUSE_IP(line)){
+            if (cause & CAUSE_IP(line)){
                 break;
             }
             line++;
@@ -92,9 +98,15 @@ void nonTimerInterrupt(int line){
     /* 4
     * send message to unblock caller pcb
     */
-    pcb_t* unblocked;
+    pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devNo)]);
+    msg_t* msg = allocMsg();
+    if (msg == NULL) { // messaggi finiti
+        // TODO
+    }
+    msg->m_payload = statusCode; // ? lo stato che ritorna il device
+    msg->m_sender = ssi_pcb;
+    pushMessage(&unblocked->msg_inbox, msg);
     // TODO
-
 
     /* 5
     * place saved status code in unblocked pcb's v0 register
@@ -105,6 +117,7 @@ void nonTimerInterrupt(int line){
     * insert newly unblocked pcb in ready queue
     */
     insertProcQ(&ready_queue, unblocked);
+    soft_block_count--;
 
     /* 7
      * return control to current process
@@ -124,7 +137,7 @@ void PLTinterrupt(){
     * copy processor state in current process
     */
     state_t *saved = BIOSDATAPAGE;
-    current_process->p_s = *saved;
+    copy_state_t(saved, &current_process->p_s);
 
     /* 3
     * place current process in ready queue
@@ -147,7 +160,10 @@ void ITinterrupt(){
     /* 2
     * unblock all pcbs waiting a pseudo clock tick
     */
-    //TODO
+    pcb_t* pcb_to_unblock;
+    while ((pcb_to_unblock = removeProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK]))) {
+        insertProcQ(&ready_queue, pcb_to_unblock);
+    }
     
     /* 3
     * return control to current process
