@@ -75,7 +75,7 @@ queue num
 49 bolcked pbcs waiting a pseudo clock tick
 
 */
-#define BLOCKED_QUEUE_NUM SEMDEVLEN+1
+#define BLOCKED_QUEUE_NUM SEMDEVLEN+2
 #define BLOKEDRECV 48
 #define BOLCKEDPSEUDOCLOCK 49
 extern struct list_head blocked_pcbs[BLOCKED_QUEUE_NUM]; // last one is for the Pseudo-clock

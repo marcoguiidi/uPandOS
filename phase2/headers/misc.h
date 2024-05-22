@@ -25,13 +25,9 @@ void process_spawn(pcb_t* process);
 
 void terminateprocess(pcb_t* process);
 
-pcb_t* pid_to_pcb(unsigned int pid);
-
 int isInPcbFree_h(unsigned int pid);
 
-int isInBlocked_pcbs(unsigned int pid);
-
-pcb_t* getBlocked_pcbs(unsigned int pid);
+pcb_t* out_pcb_in_all(pcb_t* pcb);
 
 /*
 * return the blocked queue number associated at the device/interruptline

@@ -91,29 +91,19 @@ int isInPcbFree_h(unsigned int pid) {
     return is_pid_in_list(pid, &pcbFree_h);
 }
 
-int isInBlocked_pcbs(unsigned int pid) {
-    for (int i = 0; i < SEMDEVLEN; i++) {
-        if (is_pid_in_list(pid, &blocked_pcbs[i])) return 1;
+pcb_t* out_pcb_in_all(pcb_t* pcb) {
+    pcb_t* retpcb = NULL;
+    if ((retpcb = outProcQ(&ready_queue, pcb)) == NULL) {
+        for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
+            if ((retpcb = outProcQ(&blocked_pcbs[i], pcb)) != NULL) {
+                soft_block_count--;
+                break;
+            }
+        }
     }
-    return 0;
-}
-
-pcb_t* getBlocked_pcbs(unsigned int pid) {
-    for (int i = 0; i < SEMDEVLEN; i++) {
-        pcb_t* pbc = get_pid_in_list(pid, &blocked_pcbs[i]);
-        if (pbc != NULL) return pbc;
-    }
-    return NULL;
-}
-
-pcb_t* pid_to_pcb(unsigned int pid) {
-    pcb_t* pbc;
-    if ((pbc = get_pid_in_list(pid, &pcbFree_h)) == NULL) {
-        pbc = getBlocked_pcbs(pid);
-    }
-    return pbc;
+    return retpcb;
 }
 
 int calcBlockedQueueNo(int interruptline, int devno) {
-    return (interruptline-3) + devno;
+    return ((interruptline-3)*8) + devno;
 }
