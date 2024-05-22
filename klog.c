@@ -4,13 +4,15 @@
  * @brief Small library that implements a circular log buffer. When properly traced (with ASCII representation),
  *          `klog_buffer` displays a series of printed lines.
 */
+#include "/usr/include/umps3/umps/libumps.h"
+#include "klog.h"
 
 #define KLOG_LINES     64     // Number of lines in the buffer. Adjustable, only limited by available memory
 #define KLOG_LINE_SIZE 42     // Length of a single line in characters
 
 
-static void next_line(void);
-static void next_char(void);
+void next_line(void);
+void next_char(void);
 
 
 unsigned int klog_line_index                         = 0;       // Index of the next line to fill
@@ -69,7 +71,7 @@ void klog_print_hex(unsigned int num) {
 
 
 // Move onto the next character (and into the next line if the current one overflows)
-static void next_char(void) {
+void next_char(void) {
     if (++klog_char_index >= KLOG_LINE_SIZE) {
         klog_char_index = 0;
         next_line();
@@ -78,7 +80,7 @@ static void next_char(void) {
 
 
 // Skip to next line
-static void next_line(void) {
+void next_line(void) {
     klog_line_index = (klog_line_index + 1) % KLOG_LINES;
     klog_char_index = 0;
     // Clean out the rest of the line for aesthetic purposes

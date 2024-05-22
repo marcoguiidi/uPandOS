@@ -11,6 +11,8 @@ propriate messages for the blocked PCBs.
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 
+#include "../klog.h"
+
 
 void interruptHandler(){
     
@@ -98,15 +100,21 @@ void nonTimerInterrupt(int line){
     /* 4
     * send message to unblock caller pcb
     */
-    pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devNo)]);
+    int terminalline = 7;
+    int terminalnumber = 0;
+    pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(terminalline, terminalnumber)]);
+    if (unblocked == NULL) {
+        KLOG_PANIC("pcb not found");
+    }
+
     msg_t* msg = allocMsg();
     if (msg == NULL) { // messaggi finiti
-        // TODO
+        KLOG_PANIC("messaggi finiti");
     }
     msg->m_payload = statusCode; // ? lo stato che ritorna il device
     msg->m_sender = ssi_pcb;
     pushMessage(&unblocked->msg_inbox, msg);
-    // TODO
+        
 
     /* 5
     * place saved status code in unblocked pcb's v0 register
@@ -121,8 +129,12 @@ void nonTimerInterrupt(int line){
 
     /* 7
      * return control to current process
-     */
-     LDST(BIOSDATAPAGE);
+    */
+    if (current_process == NULL) {
+        scheduler();
+    } else {
+        LDST((state_t*)BIOSDATAPAGE);
+    }
 }
 
 void PLTinterrupt(){

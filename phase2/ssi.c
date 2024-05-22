@@ -8,6 +8,7 @@ ssi.c This module implements the System Service Interface process.
 #include "headers/interrupts.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
+#include "../klog.h"
 
 
 int devAddrBase_get_IntlineNo_DevNo(unsigned int devAddrBase, int* IntlineNo, int* DevNo) {
@@ -28,7 +29,7 @@ void SSI_function_entry_point() {
     ssi_payload_t* payload;
     pcb_t* sender;
     while (TRUE) {
-        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (memaddr)(&payload), 0);
+        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
         
         SSIRequest(sender, payload->service_code, payload->arg);
     }
@@ -61,9 +62,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
         case DOIO:
             // TODO: DoIO
             ;
-            ssi_payload_t* payload = (ssi_payload_t*) arg;
-            ssi_do_io_t* doio = payload->arg;
-
+            ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
             /*
             uso sempre il terinale che è questo da mettere a posto
             doio->commandAddr fa un exception
@@ -74,12 +73,12 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
 
             pcb_t* suspended_process = out_pcb_in_all(sender);
             if (suspended_process == NULL) {
-                PANIC();
+                KLOG_PANIC("cannot find process");
             }
             // save it on the corrisponding device
             insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
-            *doio->commandAddr = doio->commandValue;
+            *doioarg->commandAddr = doioarg->commandValue;
             break;
         case GETTIME:
             ;

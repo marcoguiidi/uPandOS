@@ -9,6 +9,7 @@ scheduler.c This module implements the Scheduler and the deadlock detector.
 #include "/usr/include/umps3/umps/cp0.h"
 #include "/usr/include/umps3/umps/libumps.h"
 #include "/usr/include/umps3/umps/types.h"
+#include "../klog.h"
 
 void scheduler() {
   if (emptyProcQ(&ready_queue) == TRUE) {

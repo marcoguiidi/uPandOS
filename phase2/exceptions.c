@@ -10,6 +10,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "headers/scheduler.h"
 #include "headers/interrupts.h"
 #include <umps3/umps/libumps.h>
+#include "../klog.h"
 
 
 void uTLB_RefillHandler() {
@@ -26,8 +27,7 @@ void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_
 void passUpOrDie(unsigned type, state_t *exec_state) {
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     // then the process and the progeny of the process must be terminated
-    klog_print_dec(type);
-    process_kill(current_process); // qualcosa viene ammazzato :(((((((((((((())))))))))))))
+    process_kill(current_process); // qualcosa viene ammazzato  è l'esssi:(((((((((((((())))))))))))))
     scheduler();
     return;
   }
@@ -47,32 +47,29 @@ void exceptionHandler() {
     
     unsigned int status = getSTATUS();
     unsigned int cause  = getCAUSE();
-    unsigned int ExcCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);//(cause & GETEXECCODE) >> CAUSESHIFT;
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
 
     unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
-    switch (ExcCode) {
-        case IOINTERRUPTS:
-            interruptHandler(); // TODO:
-            break;
-        case EXC_MOD: // phase 3
-            TLBExceptionHandler(exception_state);
-            break;
-        case EXC_TLBL: // phase 3
-            TLBExceptionHandler(exception_state);
-            break;
-        case EXC_TLBS: // phase 3
-            TLBExceptionHandler(exception_state);         
-            break;
-        case SYSEXCEPTION:
-            if (was_in_kernel_mode)
-                systemcallHandler(exception_state);
-            else
-                ; // TODO trap
-            break;
-        default: //4-7, 9-12
-            TrapExceptionHandler(exception_state); //non dovrebbe anda re qui ma ci va         
-            break;
+
+    if (ExcCode == IOINTERRUPTS) {
+        interruptHandler();
+    }
+    else if (ExcCode >= 1 && ExcCode <= 3) {
+        TLBExceptionHandler(exception_state);
+    }
+    else if ((ExcCode >= 4 && ExcCode <= 7) || (ExcCode >= 9 && ExcCode <= 12)) {
+        klog_print_dec(ExcCode);
+        KLOG_PANIC("");
+        TrapExceptionHandler(exception_state);
+    }
+    else if (ExcCode == SYSEXCEPTION) {
+        if (was_in_kernel_mode)
+            systemcallHandler(exception_state);
+        else
+            ; // TODO trap
+    } else {
+        KLOG_PANIC(" execode not match")
     }
 }
 
@@ -152,6 +149,7 @@ void systemcallHandler(state_t* exceptionState) {
             break;
         
         default:
+            KLOG_PANIC("");
             TrapExceptionHandler(exceptionState);
             break;
     }
