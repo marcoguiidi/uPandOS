@@ -25,9 +25,9 @@ void TrapExceptionHandler(state_t *exec_state) { passUpOrDie(GENERALEXCEPT, exec
 void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_state); }
 
 void passUpOrDie(unsigned type, state_t *exec_state) {
+
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
-    // then the process and the progeny of the process must be terminated
-    process_kill(current_process); // qualcosa viene ammazzato  è l'esssi:(((((((((((((())))))))))))))
+    process_kill(current_process);
     scheduler();
     return;
   }
@@ -51,7 +51,9 @@ void exceptionHandler() {
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
 
     unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
-
+    
+    klog_print_dec(ExcCode);
+    
     if (ExcCode == IOINTERRUPTS) {
         interruptHandler();
     }
@@ -115,9 +117,6 @@ void systemcallHandler(state_t* exceptionState) {
             insertMessage(&dest_process->msg_inbox, msg);
             exceptionState->reg_v0 = 0; // succes
 
-            // reuturn from non bloking
-            exceptionState->pc_epc += WORDLEN;
-            LDST(exceptionState);
             break;
 
         case RECEIVEMESSAGE:
@@ -128,13 +127,14 @@ void systemcallHandler(state_t* exceptionState) {
             // no message, wait
             if (msg == NULL) {
                 // is running, put in waiting state
+                copy_state_t(exceptionState, &(current_process->p_s));
                 insertProcQ(&blocked_pcbs[BLOKEDRECV], current_process);
                 soft_block_count++;
-                // copy state
-                copy_state_t(exceptionState, &(current_process->p_s));
+
                 // TODO: TIMER
                 
                 // call the scheduler
+                current_process = NULL;
                 scheduler();
                 return; // non ci deve mai andare
             }

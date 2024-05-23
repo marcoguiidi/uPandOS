@@ -119,6 +119,8 @@ void print()
             SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
             SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
             
+            klog_print_dec(status & TERMSTATMASK);
+            
             if ((status & TERMSTATMASK) != RECVD)
                 PANIC();
 

@@ -22,9 +22,6 @@ void interruptHandler(){
     int line=1; // parto da 1 così ottengo subito la priorità maggiore
     while (line < 8){
         if (cause & CAUSE_IP(line)){
-            if (STATUS_IEc == 1 && STATUS_IM(line) == 1) {
-                // TODO generates interrupt exception
-            }
             if (line >= 3 && line <= 7){
                 nonTimerInterrupt(line);
             }else if (line == 1){
@@ -79,7 +76,7 @@ void nonTimerInterrupt(int line){
     * save off status code && ACK command the outstanding interrupt
     */
     unsigned int statusCode;
-    unsigned int mask = 1u << 5;
+    unsigned int charCode;
     devreg_t* devReg =  0x10000254; //devAddrBase;
     
     /*if (line == 7){
@@ -94,15 +91,27 @@ void nonTimerInterrupt(int line){
         statusCode = devReg->dtp.status;
         devReg->dtp.command = ACK;
     }*/
-    statusCode = devReg->term.transm_status; 
+    unsigned int statusCodeRaw = devReg->term.transm_status;
+    statusCode = devReg->term.transm_status & 0b11111111; 
+    charCode   = devReg->term.transm_status & 0b1111111100000000;
+    
+    klog_print(" ");
+    klog_print_dec(statusCode);
+    klog_print(" ");
+
     devReg->term.transm_command = ACK;
 
+    statusCode = devReg->term.transm_status & 0b11111111;
+    if (statusCode != 1) {
+        KLOG_PANIC("ack not acked");
+    }
     /* 4
     * send message to unblock caller pcb
     */
     int terminalline = 7;
     int terminalnumber = 0;
     pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(terminalline, terminalnumber)]);
+    
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");
     }
@@ -111,19 +120,9 @@ void nonTimerInterrupt(int line){
     if (msg == NULL) { // messaggi finiti
         KLOG_PANIC("messaggi finiti");
     }
-    msg->m_payload = statusCode; // ? lo stato che ritorna il device
-    msg->m_sender = ssi_pcb;
+    msg->m_sender = ssi_pcb; 
+    msg->m_payload = statusCodeRaw;
     pushMessage(&unblocked->msg_inbox, msg);
-        
-
-    /* 5
-    * place saved status code in unblocked pcb's v0 register
-    */
-    unblocked->p_s.reg_v0 = statusCode;
-
-    /* 6
-    * insert newly unblocked pcb in ready queue
-    */
     insertProcQ(&ready_queue, unblocked);
     soft_block_count--;
 
@@ -142,18 +141,19 @@ void PLTinterrupt(){
     /* 1
     * Acknowledge PLT
     */
-    setTIMER(0x00000000);
+    setTIMER(TIMESLICE);
 
     /* 2
     * copy processor state in current process
     */
-    state_t *saved = BIOSDATAPAGE;
-    copy_state_t(saved, &current_process->p_s);
+    state_t *saved = (state_t*)BIOSDATAPAGE;
 
-    /* 3
-    * place current process in ready queue
-    */
-    insertProcQ(&ready_queue, current_process);
+    if (current_process != NULL) {
+        copy_state_t(saved, &current_process->p_s);
+        insertProcQ(&ready_queue, current_process);
+    }
+    
+    
 
     /* 4
     * call the scheduler
@@ -190,7 +190,7 @@ void ITinterrupt(){
     * return control to current process
     */
     
-    LDST(BIOSDATAPAGE);
+    LDST((state_t*)BIOSDATAPAGE);
 }
 
 int calcDevNo(unsigned int address){
@@ -213,4 +213,6 @@ int calcDevNo(unsigned int address){
     }else if (*word & DEV7ON){
         return 7;
     }
+
+    return -1;
 }
