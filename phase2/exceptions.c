@@ -52,8 +52,6 @@ void exceptionHandler() {
 
     unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
     
-    klog_print_dec(ExcCode);
-    
     if (ExcCode == IOINTERRUPTS) {
         interruptHandler();
     }
@@ -61,8 +59,8 @@ void exceptionHandler() {
         TLBExceptionHandler(exception_state);
     }
     else if ((ExcCode >= 4 && ExcCode <= 7) || (ExcCode >= 9 && ExcCode <= 12)) {
+        KLOG_ERROR("trap code");
         klog_print_dec(ExcCode);
-        KLOG_PANIC("");
         TrapExceptionHandler(exception_state);
     }
     else if (ExcCode == SYSEXCEPTION) {

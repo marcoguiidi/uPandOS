@@ -118,7 +118,7 @@ void print()
             };
             SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
             SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
-
+            
             if ((status & TERMSTATMASK) != RECVD)
                 PANIC();
 
@@ -202,7 +202,6 @@ void test()
     // PASS :)
     // test print process
     print_term0("Don't Panic.\n");
-    // PASS :)
 
     /* set up states of the other processes */
 
