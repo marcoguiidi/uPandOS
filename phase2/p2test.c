@@ -118,7 +118,7 @@ void print()
             };
             SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
             SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
-            
+
             if ((status & TERMSTATMASK) != RECVD)
                 PANIC();
 
@@ -438,6 +438,8 @@ void test()
     print_term0("ERROR: p1 still alive after terminate\n");
     PANIC();
 }
+
+// FATTO :)
 
 /* p2 -- sync and cputime-SYS test process */
 void p2()
