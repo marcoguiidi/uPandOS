@@ -47,25 +47,6 @@ void nonTimerInterrupt(int line){
     unsigned int add;
     int devNo;
 
-    // switch case per ottenere indirizzo della word per ottenere poi il device number
-    switch (line) {
-        case DISKINT:
-            add = 0x1000002C;
-            break;
-        case FLASHINT: 
-            add = 0x1000002C + 0x04;
-            break;
-        case NETWINT: 
-            add = 0x1000002C + 0x08;
-            break;
-        case PRNTINT: 
-            add = 0x1000002C + 0x0C;
-            break;
-        case TERMINT: 
-            add = 0x1000002C + 0x10;
-            break;
-    }
-
     // cercare il primo bit acceso all'interno della word associata a quell' indirizzo e assegnarlo a devNo
     devNo = calcDevNo(add);
 
@@ -75,8 +56,6 @@ void nonTimerInterrupt(int line){
     /* 2 && 3
     * save off status code && ACK command the outstanding interrupt
     */
-    unsigned int statusCode;
-    unsigned int charCode;
     devreg_t* devReg =  0x10000254; //devAddrBase;
     
     /*if (line == 7){
@@ -92,19 +71,9 @@ void nonTimerInterrupt(int line){
         devReg->dtp.command = ACK;
     }*/
     unsigned int statusCodeRaw = devReg->term.transm_status;
-    statusCode = devReg->term.transm_status & 0b11111111; 
-    charCode   = devReg->term.transm_status & 0b1111111100000000;
-    
-    klog_print(" ");
-    klog_print_dec(statusCode);
-    klog_print(" ");
 
     devReg->term.transm_command = ACK;
 
-    statusCode = devReg->term.transm_status & 0b11111111;
-    if (statusCode != 1) {
-        KLOG_PANIC("ack not acked");
-    }
     /* 4
     * send message to unblock caller pcb
     */
