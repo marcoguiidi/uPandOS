@@ -451,6 +451,7 @@ void p2()
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
 
     print_term0("p2 started correctly\n");
+    // PASS :)
 
     int pid;
     ssi_payload_t get_process_payload = {

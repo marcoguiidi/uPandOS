@@ -144,6 +144,8 @@ void systemcallHandler(state_t* exceptionState) {
                 // save message if has one
                 *((unsigned int*)reg_A2) = (unsigned int)msg->m_payload;
             }
+
+            freeMsg(msg);
             break;
         
         default:
