@@ -42,4 +42,8 @@ int calcDevNo(unsigned int address);
 void TrapExceptionHandler(state_t *exec_state);
 void TLBExceptionHandler(state_t *exec_state);
 
+extern cpu_t time_interrupt_start;
+
+cpu_t get_elapsed_time_interupt();
+
 #endif

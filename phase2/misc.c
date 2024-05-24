@@ -55,7 +55,7 @@ void copy_state_t(state_t* src, state_t* dest) {
 void process_kill(pcb_t *process) {
     if (outProcQ(&ready_queue, process) == NULL) { //not in ready queue
         // check blocked pbc
-        for (int i = 0; i < SEMDEVLEN; i++) {
+        for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
             if (outProcQ(&blocked_pcbs[i], process) != NULL) {
                 soft_block_count--;
                 break; // found it
@@ -106,4 +106,10 @@ pcb_t* out_pcb_in_all(pcb_t* pcb) {
 
 int calcBlockedQueueNo(int interruptline, int devno) {
     return ((interruptline-3)*8) + devno;
+}
+
+cpu_t get_elapsed_time() {
+    cpu_t time_now_TOD;
+    STCK(time_now_TOD);
+    return (time_now_TOD - acc_cpu_time);
 }

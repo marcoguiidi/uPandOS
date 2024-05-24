@@ -10,9 +10,15 @@ propriate messages for the blocked PCBs.
 #include "headers/scheduler.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
-
+#include "headers/exceptions.h"
 #include "../klog.h"
 
+
+cpu_t get_elapsed_time_interupt() {
+    cpu_t now;
+    STCK(now);
+    return (now - interrupt_enter_time);
+}
 
 void interruptHandler(){
     
@@ -101,6 +107,7 @@ void nonTimerInterrupt(int line){
     if (current_process == NULL) {
         scheduler();
     } else {
+        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
         LDST((state_t*)BIOSDATAPAGE);
     }
 }
@@ -120,6 +127,8 @@ void PLTinterrupt(){
     if (current_process != NULL) {
         copy_state_t(saved, &current_process->p_s);
         insertProcQ(&ready_queue, current_process);
+
+        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
     }
     
     
@@ -152,14 +161,14 @@ void ITinterrupt(){
 
     if (current_process == NULL) {
         scheduler();
-        return;
+    } else {
+        /* 3
+        * return control to current process
+        */
+        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
+        LDST((state_t*)BIOSDATAPAGE);
     }
-    
-    /* 3
-    * return control to current process
-    */
-    
-    LDST((state_t*)BIOSDATAPAGE);
+
 }
 
 int calcDevNo(unsigned int address){

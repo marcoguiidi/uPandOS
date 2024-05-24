@@ -83,15 +83,12 @@ extern struct list_head blocked_pcbs[BLOCKED_QUEUE_NUM]; // last one is for the 
 
 extern passupvector_t* passupvector;
 
+/** pcb used by the ssi*/
 extern pcb_t* ssi_pcb;
 
 /** last used pid */
 extern unsigned int lastpid;
 
-/**
-return a not used pid
-*/
-
-
+extern cpu_t acc_cpu_time;
 
 #endif

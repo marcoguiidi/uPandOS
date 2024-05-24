@@ -10,8 +10,14 @@ scheduler.c This module implements the Scheduler and the deadlock detector.
 #include "/usr/include/umps3/umps/libumps.h"
 #include "/usr/include/umps3/umps/types.h"
 #include "../klog.h"
+#include "headers/misc.h"
 
 void scheduler() {
+
+  if (current_process != NULL) {
+    current_process->p_time += get_elapsed_time();
+  }
+
   if (emptyProcQ(&ready_queue) == TRUE) {
     if (process_count == 1 && current_process->p_pid == ssi_pcb->p_pid) {
       HALT();
@@ -26,6 +32,7 @@ void scheduler() {
   } else {
     current_process = removeProcQ(&ready_queue);
     setTIMER(TIMESLICE);
+    STCK(acc_cpu_time); // restart counting
     LDST(&current_process->p_s);
   }
 }

@@ -29,22 +29,30 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     process_kill(current_process);
     scheduler();
-    return;
   }
   // salva lo stato del processo
   copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
-  // fare roba cpu time TODO: asd
   
+  // update cput time
+  current_process->p_time -= get_elapsed_time_interupt();
+  current_process->p_time += get_elapsed_time();
   
   // passa l'eccezione
   context_t context_pass_to = current_process->p_supportStruct->sup_exceptContext[type];
   LDCXT(context_pass_to.stackPtr, context_pass_to.status, context_pass_to.pc);
 }
 
+/**
+time saved when entering exception,
+time used in sycall is counted
+*/
+cpu_t interrupt_enter_time;
+
 // Exception handler function
 void exceptionHandler() {
     // Perform a multi-way branch depending on the cause of the exception
-    
+    STCK(interrupt_enter_time);
+
     unsigned int status = getSTATUS();
     unsigned int cause  = getCAUSE();
     unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);//(cause & GETEXECCODE) >> CAUSESHIFT;
@@ -66,15 +74,18 @@ void exceptionHandler() {
     else if (ExcCode == SYSEXCEPTION) {
         if (was_in_kernel_mode)
             systemcallHandler(exception_state);
-        else
-            ; // TODO trap
+        else {
+            KLOG_ERROR("SYSCALL not in kernel mode");
+            exception_state->cause = PRIVINSTR;
+            TrapExceptionHandler(exception_state);
+        }    
     } else {
         KLOG_PANIC(" execode not match")
     }
 }
 
 void systemcallHandler(state_t* exceptionState) {
-    // syscall
+    // syscall type
     int reg_A0 = exceptionState->reg_a0;
     // process
     unsigned int reg_A1 = exceptionState->reg_a1;
@@ -90,20 +101,28 @@ void systemcallHandler(state_t* exceptionState) {
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
             if (reg_A1 == 0) {
+                KLOG_ERROR("SENDMESSAGE dest is NULL");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
                 //il processo di destinazione è nella lista pcbFree_h
+                KLOG_ERROR("SENDMESSAGE dest is in pcbFree_h");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
                 break;   
             }
             // alloco messaggio
             msg = allocMsg();
             if (msg == NULL) {
+                KLOG_ERROR("msg all used");
                 exceptionState->reg_v0 = MSGNOGOOD; // messaggi liberi esauriti
                 break;                
             }
+
+            if (current_process == NULL) {
+                KLOG_PANIC("current_process is NULL");
+            }
+
             msg->m_payload = (unsigned int)reg_A2;
             msg->m_sender = current_process;
             if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // is blocked
@@ -129,7 +148,8 @@ void systemcallHandler(state_t* exceptionState) {
                 insertProcQ(&blocked_pcbs[BLOKEDRECV], current_process);
                 soft_block_count++;
 
-                // TODO: TIMER
+                // add time spent in syscall
+                current_process->p_time -= get_elapsed_time_interupt();
                 
                 // call the scheduler
                 current_process = NULL;

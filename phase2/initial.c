@@ -32,6 +32,8 @@ unsigned int lastpid = 1;
 
 pcb_t* ssi_pcb;
 
+cpu_t acc_cpu_time;
+
 
 int main(void) {
     /*

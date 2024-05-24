@@ -34,4 +34,9 @@ pcb_t* out_pcb_in_all(pcb_t* pcb);
 */
 int calcBlockedQueueNo(int interruptline, int devno);
 
+/*
+get TOD time elapsed
+*/
+cpu_t get_elapsed_time();
+
 #endif

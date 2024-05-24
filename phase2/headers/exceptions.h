@@ -14,6 +14,8 @@
 #include "/usr/include/umps3/umps/arch.h"
 #include "/usr/include/umps3/umps/types.h" 
 
+extern cpu_t interrupt_enter_time;
+
 void exceptionHandler(); 
 
 void systemcallHandler(state_t* exceptionState);
