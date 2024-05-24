@@ -96,6 +96,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             break;
         case GETPROCESSID:
             ;
+            int arg_getprocessid = (int)arg;
             unsigned int pid;
             if (arg == 0) {
                 pid = sender->p_pid;
@@ -103,12 +104,15 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
                 pid = sender->p_parent->p_pid;
             }
             SYSCALL(SENDMESSAGE, sender, pid, 0);
+            break;
         default:
             /*
             If service does not match any of those 
             provided by the SSI, the SSI should terminate the process
             and its progeny
             */
+            klog_print_dec(service);
+            KLOG_ERROR(" <-service not found");
             terminateprocess(sender);
             break;
     }

@@ -35,7 +35,7 @@ void interruptHandler(){
             }else if (line == 2){ // va sempre qua
                 ITinterrupt();
             } else {
-                klog_print("interrupt not resolved");
+                KLOG_PANIC("interrupt not resolved");
             }
         }
         line++;
@@ -89,6 +89,8 @@ void nonTimerInterrupt(int line){
     
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");
+    } else {
+        soft_block_count--;
     }
 
     msg_t* msg = allocMsg();
@@ -99,7 +101,6 @@ void nonTimerInterrupt(int line){
     msg->m_payload = statusCodeRaw;
     pushMessage(&unblocked->msg_inbox, msg);
     insertProcQ(&ready_queue, unblocked);
-    soft_block_count--;
 
     /* 7
      * return control to current process

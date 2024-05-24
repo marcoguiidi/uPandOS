@@ -18,7 +18,7 @@ void klog_print_hex(unsigned int num);
 
 #define KLOG_ERROR(explaintext)\
     klog_print(explaintext);\
-    next_line();\
+    klog_print(" | ");\
     klog_print(__FILE__);\
     klog_print(" at line: ");\
     klog_print_dec(__LINE__);\

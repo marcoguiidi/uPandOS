@@ -11,7 +11,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "headers/interrupts.h"
 #include <umps3/umps/libumps.h>
 #include "../klog.h"
-
+#include "headers/p2test.h"
 
 void uTLB_RefillHandler() {
     setENTRYHI(0x80000000);
@@ -27,7 +27,9 @@ void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_
 void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
+    KLOG_ERROR("bad process killed");
     process_kill(current_process);
+    current_process = NULL;
     scheduler();
   }
   // salva lo stato del processo
@@ -53,7 +55,6 @@ void exceptionHandler() {
     // Perform a multi-way branch depending on the cause of the exception
     STCK(interrupt_enter_time);
 
-    unsigned int status = getSTATUS();
     unsigned int cause  = getCAUSE();
     unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);//(cause & GETEXECCODE) >> CAUSESHIFT;
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
@@ -125,6 +126,7 @@ void systemcallHandler(state_t* exceptionState) {
 
             msg->m_payload = (unsigned int)reg_A2;
             msg->m_sender = current_process;
+            
             if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // is blocked
                 // is waiting, unblock it
                 insertProcQ(&ready_queue, dest_process);
@@ -154,7 +156,6 @@ void systemcallHandler(state_t* exceptionState) {
                 // call the scheduler
                 current_process = NULL;
                 scheduler();
-                return; // non ci deve mai andare
             }
 
             // return the payload
@@ -169,7 +170,7 @@ void systemcallHandler(state_t* exceptionState) {
             break;
         
         default:
-            KLOG_PANIC("");
+            KLOG_PANIC("SYSCALL code unkown");
             TrapExceptionHandler(exceptionState);
             break;
     }

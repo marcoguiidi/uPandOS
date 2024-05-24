@@ -5,6 +5,7 @@
 #include <umps3/umps/types.h>
 #include "../phase1/headers/msg.h"
 #include "../phase1/headers/pcb.h"
+#include "../klog.h"
 
 
 int IN_KERNEL_MODE(unsigned int status) {
@@ -53,17 +54,14 @@ void copy_state_t(state_t* src, state_t* dest) {
 }
 
 void process_kill(pcb_t *process) {
-    if (outProcQ(&ready_queue, process) == NULL) { //not in ready queue
-        // check blocked pbc
-        for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
-            if (outProcQ(&blocked_pcbs[i], process) != NULL) {
-                soft_block_count--;
-                break; // found it
-            }
-        }
-    } else {
-        process_count--;
+    if (process == current_process) {
+        KLOG_ERROR("?? killing current process");
+        current_process = NULL;
+    } else if (out_pcb_in_all(process) == NULL) {
+        KLOG_PANIC("pcb not found");
     }
+    process_count--;
+    
     freePcb(process);
 }
 
