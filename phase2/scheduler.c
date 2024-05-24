@@ -27,7 +27,7 @@ void scheduler() {
     }
     // deadlock
     else if (process_count > 0 && soft_block_count == 0) {
-      PANIC();
+      KLOG_PANIC("DEADLOCK");
     }
   } else {
     current_process = removeProcQ(&ready_queue);
