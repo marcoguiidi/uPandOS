@@ -61,16 +61,16 @@ void scheduler() {
 
   	if (emptyProcQ(&ready_queue) == TRUE) {
     	if (process_count == 1 && current_process->p_pid == ssi_pcb->p_pid) {
-      	HALT();
+      		HALT();
     	} else if (process_count > 1 && soft_block_count > 0) {
-      	setSTATUS((getSTATUS() | STATUS_IEc | STATUS_IM_MASK) & (~STATUS_TE));
-      	WAIT();
-    }
-    // deadlock
-    else if (process_count > 0 && soft_block_count == 0) {
-      	deadlock_logs();
-		KLOG_PANIC("DEADLOCK");
-    }
+      		setSTATUS((getSTATUS() | STATUS_IEc | STATUS_IM_MASK) & (~STATUS_TE));
+      		WAIT();
+    	}
+    	// deadlock
+    	else if (process_count > 0 && soft_block_count == 0) {
+      		deadlock_logs();
+			KLOG_PANIC("DEADLOCK");
+    	}
   	} else {
     	current_process = removeProcQ(&ready_queue);
     	setTIMER(TIMESLICE);

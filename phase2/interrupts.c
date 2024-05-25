@@ -162,13 +162,12 @@ void ITinterrupt(){
 
     if (current_process == NULL) {
         scheduler();
-    } else {
-        /* 3
-        * return control to current process
-        */
-        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
-        LDST((state_t*)BIOSDATAPAGE);
-    }
+    } 
+    /* 3
+    * return control to current process
+    */
+    current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
+    LDST((state_t*)BIOSDATAPAGE);
 
 }
 

@@ -97,6 +97,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
         case CLOCKWAIT:
             ;
             insertProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK], out_pcb_in_all(sender));
+            soft_block_count++;
             break;
         case GETSUPPORTPTR:
             ;
@@ -125,37 +126,4 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             terminateprocess(sender);
             break;
     }
-}
-
-void killProgeny(pcb_t *sender) {
-  // check if process exists and is not ssi
-  if (sender == NULL || sender == ssi_pcb || isInPcbFree_h(sender->p_pid)) {
-    return;
-  }
-  
-  outChild(sender);
-
-  // recurrsively kill childs
-  pcb_PTR child = NULL;
-  while ((child = removeChild(sender)) != NULL) {
-    killProgeny(child);
-  }
-
-  pcb_PTR removed = outProcQ(&ready_queue, sender);
-
-  if (outProcQ(&ready_queue, sender) != NULL || outProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK], sender) != NULL) {
-    soft_block_count--;
-  } else if (removed == NULL) { // pcb not found in the ready queue so it must be blocked for a device
-    /*check if is blocked for device response*/
-    for (int i = 0; i < BLOCKED_QUEUE_NUM - 1; i++) {
-      if (outProcQ(&blocked_pcbs[i], sender) != NULL) {
-        soft_block_count--;
-        break;
-      }
-    }
-  }
-
-  // kill process
-  freePcb(sender);
-  process_count--;
 }
