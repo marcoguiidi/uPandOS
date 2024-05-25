@@ -422,6 +422,7 @@ void test()
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p9_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p10_pcb, 0, 0);
 
+    KLOG_PANIC("t425");
     terminate_process(p9_pcb);
 
     // check test_pcb child's length
@@ -435,6 +436,7 @@ void test()
 
     print_term0("A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.\n");
 
+    KLOG_PANIC("t439");
     terminate_process(SELF);
 
     /* should not reach this point, since p1 just got a program trap */
@@ -502,6 +504,7 @@ void p2()
     // notify p1 that p2 ended
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
 
+    KLOG_ERROR("t505");
     terminate_process(SELF);
 
     /* just did a TERMPROCESS, so should not get to this point */
@@ -565,6 +568,7 @@ void p3()
     // notify p1 that p3 ended
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
 
+    KLOG_PANIC("t571");
     terminate_process(SELF);
 
     /* just did a TERMPROCESS, so should not get to this point */
@@ -608,6 +612,7 @@ void p4()
     // notify p4 ended
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
 
+    KLOG_PANIC("t615");
     // this TERMPROCESS should terminate p4 seecond incarnation
     terminate_process(SELF);
 
@@ -731,6 +736,7 @@ void p5b()
     SYSCALL(1, 0, 0, 0);
 
     print_term0("p5 ok\n");
+    KLOG_PANIC("t739");
     terminate_process(SELF);
 
     /* should have terminated, so should not get to this point */
@@ -776,6 +782,7 @@ void p8()
     print_term0("p8 ok\n");
 
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
+    KLOG_PANIC("t785");
     terminate_process(SELF);
 
     /* just did a TERMPROCESS, so should not get to this point */
@@ -802,6 +809,7 @@ void p8root()
 
     // notify test_pcb
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
+    KLOG_PANIC("t812");
     terminate_process(SELF);
 
     print_term0("ERROR: p8root didn't terminate\n");
@@ -908,6 +916,7 @@ void p10()
 
     print_term0("p9 and p10 ok\n");
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
+    KLOG_PANIC("t919");
     terminate_process(SELF);
 
     print_term0("ERROR: p10 didn't die with its parent!\n");
@@ -918,6 +927,7 @@ void hp_p1()
 {
     print_term0("hp_p1 starts\n");
 
+    KLOG_PANIC("t930");
     terminate_process(SELF);
 
     print_term0("ERROR: hp_p1 didn't die!\n");
@@ -931,6 +941,7 @@ void hp_p2()
     for (int i = 0; i < 10; i++)
         clockwait_process();
 
+    KLOG_PANIC("t944");
     terminate_process(SELF);
 
     print_term0("ERROR: hp_p2 didn't die!\n");

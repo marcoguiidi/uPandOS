@@ -53,18 +53,6 @@ void copy_state_t(state_t* src, state_t* dest) {
     }
 }
 
-void process_kill(pcb_t *process) {
-    if (process == current_process) {
-        KLOG_ERROR("?? killing current process");
-        current_process = NULL;
-    } else if (out_pcb_in_all(process) == NULL) {
-        KLOG_PANIC("pcb not found");
-    }
-    process_count--;
-    
-    freePcb(process);
-}
-
 unsigned int new_pid() {
     unsigned int new_pid = lastpid;
     lastpid++;
@@ -75,18 +63,6 @@ void process_spawn(pcb_t *process) {
     process->p_pid = new_pid();
     insertProcQ(&ready_queue, process);
     process_count++;
-}
-
-void terminateprocess(pcb_t* process) {
-    while (!emptyChild(process)) {
-        pcb_t* child = removeChild(process);
-        terminateprocess(child);
-    }
-    process_kill(process);
-}
-
-int isInPcbFree_h(unsigned int pid) {
-    return is_pid_in_list(pid, &pcbFree_h);
 }
 
 pcb_t* out_pcb_in_all(pcb_t* pcb) {
@@ -100,6 +76,34 @@ pcb_t* out_pcb_in_all(pcb_t* pcb) {
         }
     }
     return retpcb;
+}
+
+void process_kill(pcb_t *process) {
+    KLOG_ERROR("killing process");
+    if (process == ssi_pcb) {
+        KLOG_PANIC("someone is murdering the ssi :(");
+    }
+    if (process == current_process) {
+        KLOG_PANIC("?? killing current process");
+        current_process = NULL;
+    } else if (out_pcb_in_all(process) == NULL) {
+        KLOG_PANIC("pcb not found");
+    }
+    process_count--;
+    
+    freePcb(process);
+}
+
+void terminateprocess(pcb_t* process) {
+    while (!emptyChild(process)) {
+        pcb_t* child = removeChild(process);
+        terminateprocess(child);
+    }
+    process_kill(process);
+}
+
+int isInPcbFree_h(unsigned int pid) {
+    return is_pid_in_list(pid, &pcbFree_h);
 }
 
 int calcBlockedQueueNo(int interruptline, int devno) {

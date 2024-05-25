@@ -8,9 +8,6 @@
 #include "../../phase1/headers/msg.h"
 #include "../../phase1/headers/pcb.h"
 
-// for spec compatability spec2 is wrong
-#define TERMINATEPROCESS TERMPROCESS
-
 void SSI_function_entry_point();
 
 void SSIRequest(pcb_t* sender, int service, void* arg);

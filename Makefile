@@ -41,7 +41,7 @@ kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o
 	$(LD) -o $@ $^ $(LDFLAGS)
 
 clean :
-	-rm -f *.o ./phase1/*.o kernel kernel.*.umps
+	-rm -f *.o ./phase1/*.o kernel kernel.*.umps ./phase2/*.o
 
 # Pattern rule for assembly modules
 %.o : %.S
