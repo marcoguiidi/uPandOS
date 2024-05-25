@@ -6,6 +6,7 @@
 #include "../phase1/headers/msg.h"
 #include "../phase1/headers/pcb.h"
 #include "../klog.h"
+#include "headers/p2test.h"
 
 
 int IN_KERNEL_MODE(unsigned int status) {
@@ -79,12 +80,14 @@ pcb_t* out_pcb_in_all(pcb_t* pcb) {
 }
 
 void process_kill(pcb_t *process) {
-    KLOG_ERROR("killing process");
+    if (process == test_pcb) {
+        KLOG_PANIC("someone is murdering test_pcb :(");
+    }
     if (process == ssi_pcb) {
         KLOG_PANIC("someone is murdering the ssi :(");
     }
     if (process == current_process) {
-        KLOG_PANIC("?? killing current process");
+        KLOG_ERROR("?? killing current process");
         current_process = NULL;
     } else if (out_pcb_in_all(process) == NULL) {
         KLOG_PANIC("pcb not found");

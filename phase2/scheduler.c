@@ -53,8 +53,11 @@ void deadlock_logs() {
 	}
 }
 
-void scheduler() {
 
+volatile unsigned int times = 0;
+
+void scheduler() {
+	
 	if (current_process != NULL) {
     	current_process->p_time += get_elapsed_time();
   	}
@@ -64,6 +67,13 @@ void scheduler() {
       		HALT();
     	} else if (process_count > 1 && soft_block_count > 0) {
       		setSTATUS((getSTATUS() | STATUS_IEc | STATUS_IM_MASK) & (~STATUS_TE));
+			times++;
+			
+			if (times == 50) {
+				deadlock_logs();
+				KLOG_PANIC("waiting for too long");
+			}
+
       		WAIT();
     	}
     	// deadlock
@@ -72,6 +82,7 @@ void scheduler() {
 			KLOG_PANIC("DEADLOCK");
     	}
   	} else {
+		times = 0;
     	current_process = removeProcQ(&ready_queue);
     	setTIMER(TIMESLICE);
     	STCK(acc_cpu_time); // restart counting

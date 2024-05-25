@@ -170,7 +170,7 @@ void systemcallHandler(state_t* exceptionState) {
             break;
         
         default:
-            KLOG_PANIC("SYSCALL code unkown");
+            KLOG_ERROR("SYSCALL code unkown");
             TrapExceptionHandler(exceptionState);
             break;
     }

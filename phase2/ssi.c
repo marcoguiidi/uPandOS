@@ -55,10 +55,6 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             }
             break;
         case TERMPROCESS:
-            KLOG_ERROR("termprocess?");
-            if (arg == NULL && sender == p2_pcb) {
-                KLOG_ERROR("p2 term");
-            }
             if (arg == NULL) {
                 terminateprocess(sender);
             } else {
