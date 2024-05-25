@@ -49,6 +49,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             } else {
                 copy_state_t(data->state, &newprocess->p_s);
                 newprocess->p_supportStruct = data->support;
+                newprocess->p_time = 0;
                 insertChild(sender, newprocess); // is child of sender
                 process_spawn(newprocess);
                 SYSCALL(SENDMESSAGE, sender, newprocess, 0); // return new process

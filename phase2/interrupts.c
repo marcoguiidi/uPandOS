@@ -127,13 +127,14 @@ void PLTinterrupt(){
 
     if (current_process != NULL) {
         copy_state_t(saved, &current_process->p_s);
+        current_process->p_time += get_elapsed_time(); // time elapsed in interrupts doesn't count
+        current_process->p_time -= get_elapsed_time_interupt();
         insertProcQ(&ready_queue, current_process);
-
-        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
+        current_process = NULL;
+    } else {
+        KLOG_PANIC("pcb is NULL");
     }
     
-    
-
     /* 4
     * call the scheduler
     */

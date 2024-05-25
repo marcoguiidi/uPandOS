@@ -18,43 +18,43 @@ void deadlock_logs() {
 
 	for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
 		if (i == BLOKEDRECV) {
-			klog_print("waiting for a message\n");
+			klog_print("w for a message: ");
 		} else if (i == BOLCKEDPSEUDOCLOCK) {
-			klog_print("waiting for timer\n");
+			klog_print("w for timer: ");
 		} else {
-			klog_print("waiting for a device n. ");
+			klog_print("w for a dev n. ");
 			klog_print_dec(i);
-			klog_print("\n");
+			klog_print(":");
 		}
 		list_for_each_entry(tmp, &blocked_pcbs[i], p_list) {
-			if (tmp == test_pcb) {klog_print("test_pcb\n");}
-			else if (tmp == print_pcb ) {klog_print("print_pcb\n");}
-			else if (tmp == p2_pcb) {klog_print("p2_pcb\n");}
-			else if (tmp == p3_pcb) {klog_print("p3_pcb\n");}
-			else if (tmp == p4_pcb_v1 ) {klog_print("p4_pcb_v1\n");}
-			else if (tmp == p4_pcb_v2 ) {klog_print("p4_pcb_v2\n");}
-			else if (tmp == p5_pcb) {klog_print("p5_pcb\n");}
-			else if (tmp == p6_pcb) {klog_print("p6_pcb\n");}
-			else if (tmp == p7_pcb) {klog_print("p7_pcb\n");}
-			else if (tmp == p8_pcb) {klog_print("p8_pcb\n");}
-			else if (tmp == p8root_pcb) {klog_print("p8root_pcb\n");}
-			else if (tmp == child1_pcb) {klog_print("child1_pcb\n");}
-			else if (tmp == child2_pcb) {klog_print("child2_pcb\n");}
-			else if (tmp == gchild1_pcb) {klog_print("gchild1_pcb\n");}
-			else if (tmp == gchild2_pcb) {klog_print("gchild2_pcb\n");}
-			else if (tmp == gchild3_pcb) {klog_print("gchild3_pcb\n");}
-			else if (tmp == gchild4_pcb) {klog_print("gchild4_pcb\n");}
-			else if (tmp == p9_pcb) {klog_print("p9_pcb\n");}
-			else if (tmp == p10_pcb) {klog_print("p10_pcb\n");}
+			if (tmp == test_pcb) {klog_print("test_pcb! ");}
+			else if (tmp == print_pcb ) {klog_print("print_pcb! ");}
+			else if (tmp == p2_pcb) {klog_print("p2_pcb! ");}
+			else if (tmp == p3_pcb) {klog_print("p3_pcb! ");}
+			else if (tmp == p4_pcb_v1 ) {klog_print("p4_pcb_v1! ");}
+			else if (tmp == p4_pcb_v2 ) {klog_print("p4_pcb_v2! ");}
+			else if (tmp == p5_pcb) {klog_print("p5_pcb! ");}
+			else if (tmp == p6_pcb) {klog_print("p6_pcb! ");}
+			else if (tmp == p7_pcb) {klog_print("p7_pcb! ");}
+			else if (tmp == p8_pcb) {klog_print("p8_pcb! ");}
+			else if (tmp == p8root_pcb) {klog_print("p8root_pcb! ");}
+			else if (tmp == child1_pcb) {klog_print("child1_pcb! ");}
+			else if (tmp == child2_pcb) {klog_print("child2_pcb! ");}
+			else if (tmp == gchild1_pcb) {klog_print("gchild1_pcb! ");}
+			else if (tmp == gchild2_pcb) {klog_print("gchild2_pcb! ");}
+			else if (tmp == gchild3_pcb) {klog_print("gchild3_pcb! ");}
+			else if (tmp == gchild4_pcb) {klog_print("gchild4_pcb! ");}
+			else if (tmp == p9_pcb) {klog_print("p9_pcb! ");}
+			else if (tmp == p10_pcb) {klog_print("p10_pcb! ");}
 			else {
-			    klog_print("**\n");
+			    klog_print("AA! ");
 			}
 		}
 	}
 }
 
 
-volatile unsigned int times = 0;
+unsigned int times = 0;
 
 void scheduler() {
 	

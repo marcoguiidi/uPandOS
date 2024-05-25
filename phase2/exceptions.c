@@ -36,8 +36,8 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
   
   // update cput time
-  current_process->p_time -= get_elapsed_time_interupt();
   current_process->p_time += get_elapsed_time();
+  current_process->p_time -= get_elapsed_time_interupt();
   
   // passa l'eccezione
   context_t context_pass_to = current_process->p_supportStruct->sup_exceptContext[type];
@@ -136,6 +136,7 @@ void systemcallHandler(state_t* exceptionState) {
             insertMessage(&dest_process->msg_inbox, msg);
             exceptionState->reg_v0 = 0; // succes
 
+            current_process->p_time -= get_elapsed_time_interupt();
             break;
 
         case RECEIVEMESSAGE:
@@ -147,11 +148,12 @@ void systemcallHandler(state_t* exceptionState) {
             if (msg == NULL) {
                 // is running, put in waiting state
                 copy_state_t(exceptionState, &(current_process->p_s));
+                
+                // add time spent in syscall
+                current_process->p_time += get_elapsed_time();
                 insertProcQ(&blocked_pcbs[BLOKEDRECV], current_process);
                 soft_block_count++;
 
-                // add time spent in syscall
-                current_process->p_time -= get_elapsed_time_interupt();
                 
                 // call the scheduler
                 current_process = NULL;

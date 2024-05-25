@@ -1,6 +1,7 @@
 #include "headers/misc.h"
 #include "headers/initial.h"
 #include <umps3/umps/const.h>
+#include <umps3/umps/cp0.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 #include "../phase1/headers/msg.h"
@@ -10,7 +11,7 @@
 
 
 int IN_KERNEL_MODE(unsigned int status) {
-    if ((status & STATUS_KUc) == 0) 
+    if ((status & STATUS_KUp) == 0) 
         return TRUE;
     else
         return FALSE;

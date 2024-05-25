@@ -168,7 +168,6 @@ pcb_t *create_process(state_t *s)
     };
     SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)&payload, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p), 0);
-    // non ritorna l'eseguzione a lei
     return p;
 }
 
