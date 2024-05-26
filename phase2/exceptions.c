@@ -27,9 +27,12 @@ void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_
 void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
+    if (current_process == NULL) {
+        KLOG_ERROR("WTF");
+    }
+    terminateprocess(current_process);
     KLOG_ERROR("bad process killed");
-    process_kill(current_process);
-    current_process = NULL;
+    
     scheduler();
   }
   // salva lo stato del processo
@@ -68,8 +71,13 @@ void exceptionHandler() {
         TLBExceptionHandler(exception_state);
     }
     else if ((ExcCode >= 4 && ExcCode <= 7) || (ExcCode >= 9 && ExcCode <= 12)) {
-        KLOG_ERROR("trap code");
-        klog_print_dec(ExcCode);
+        /*KLOG_ERROR("trap code");
+        klog_print_dec(ExcCode);*/
+        if  (ExcCode == 4) {
+            
+            klogprint_current_pcb_name();
+            KLOG_ERROR(" access bad memory");
+        }
         TrapExceptionHandler(exception_state);
     }
     else if (ExcCode == SYSEXCEPTION) {
@@ -77,7 +85,7 @@ void exceptionHandler() {
             systemcallHandler(exception_state);
         else {
             KLOG_ERROR("SYSCALL not in kernel mode");
-            exception_state->cause = PRIVINSTR;
+            exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
             TrapExceptionHandler(exception_state);
         }    
     } else {
@@ -106,7 +114,7 @@ void systemcallHandler(state_t* exceptionState) {
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
-            if (is_in_pcbfee_sas(dest_process)) {
+            if (isInPcbFree_h(dest_process->p_pid)) {
                 //il processo di destinazione è nella lista pcbFree_h
                 KLOG_ERROR("SENDMESSAGE dest is in pcbFree_h");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  

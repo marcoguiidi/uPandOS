@@ -96,6 +96,9 @@ void process_kill(pcb_t *process) {
 }
 
 void terminateprocess(pcb_t* process) {
+    if (process == NULL || isInPcbFree_h(process->p_pid)) {
+        return;
+    }
     while (!emptyChild(process)) {
         pcb_t* child = removeChild(process);
         terminateprocess(child);
@@ -128,4 +131,30 @@ cpu_t get_elapsed_time() {
     cpu_t time_now_TOD;
     STCK(time_now_TOD);
     return (time_now_TOD - acc_cpu_time);
+}
+
+
+void klogprint_current_pcb_name() {
+    if (current_process == test_pcb) {klog_print("test_pcb! ");}
+    else if (current_process == print_pcb ) {klog_print("print_pcb! ");}
+    else if (current_process == p2_pcb) {klog_print("p2_pcb! ");}
+    else if (current_process == p3_pcb) {klog_print("p3_pcb! ");}
+    else if (current_process == p4_pcb_v1 ) {klog_print("p4_pcb_v1! ");}
+    else if (current_process == p4_pcb_v2 ) {klog_print("p4_pcb_v2! ");}
+    else if (current_process == p5_pcb) {klog_print("p5_pcb! ");}
+    else if (current_process == p6_pcb) {klog_print("p6_pcb! ");}
+    else if (current_process == p7_pcb) {klog_print("p7_pcb! ");}
+    else if (current_process == p8_pcb) {klog_print("p8_pcb! ");}
+    else if (current_process == p8root_pcb) {klog_print("p8root_pcb! ");}
+    else if (current_process == child1_pcb) {klog_print("child1_pcb! ");}
+    else if (current_process == child2_pcb) {klog_print("child2_pcb! ");}
+    else if (current_process == gchild1_pcb) {klog_print("gchild1_pcb! ");}
+    else if (current_process == gchild2_pcb) {klog_print("gchild2_pcb! ");}
+    else if (current_process == gchild3_pcb) {klog_print("gchild3_pcb! ");}
+    else if (current_process == gchild4_pcb) {klog_print("gchild4_pcb! ");}
+    else if (current_process == p9_pcb) {klog_print("p9_pcb! ");}
+    else if (current_process == p10_pcb) {klog_print("p10_pcb! ");}
+    else {
+        klog_print("unknown! ");
+    }
 }
