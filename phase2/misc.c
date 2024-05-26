@@ -81,9 +81,6 @@ pcb_t* out_pcb_in_all(pcb_t* pcb) {
 }
 
 void process_kill(pcb_t *process) {
-    if (process == test_pcb) {
-        KLOG_PANIC("someone is murdering test_pcb :(");
-    }
     if (process == ssi_pcb) {
         KLOG_PANIC("someone is murdering the ssi :(");
     }
@@ -108,6 +105,19 @@ void terminateprocess(pcb_t* process) {
 
 int isInPcbFree_h(unsigned int pid) {
     return is_pid_in_list(pid, &pcbFree_h);
+}
+
+int is_pcb_in_list(pcb_t* pcb, struct list_head* list) {
+    pcb_t* tmp;
+    list_for_each_entry(tmp, list, p_list) {
+        if (tmp == pcb)
+            return 1;
+    }
+    return 0;
+}
+
+int is_in_pcbfee_sas(pcb_t* process) {
+    return is_pcb_in_list(process, &pcbFree_h);
 }
 
 int calcBlockedQueueNo(int interruptline, int devno) {

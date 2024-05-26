@@ -387,7 +387,7 @@ void test()
         p8pid = p8root_pcb->p_pid;
 
         SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, START, 0);
-        SYSCALL(RECEIVEMESSAGE, (unsigned int)p8root_pcb, 0, 0);
+        SYSCALL(RECEIVEMESSAGE, (unsigned int)p8root_pcb, 0, 0);        
 
         // wait a bit for process termination
         for (int i = 0; i < 10; i++)

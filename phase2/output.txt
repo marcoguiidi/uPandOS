@@ -23,9 +23,9 @@
 - p5a starts
 - check p8 root and leaf
 - memory management trap
-p8root starts
+- p8root starts
 - Correct Support Structure Address
-child1 starts
+- child1 starts
 child2 starts
 - Address Error (as expected): non-kuseg access w/KU=1
 leaf process (1) starts

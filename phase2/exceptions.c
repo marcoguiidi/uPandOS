@@ -106,7 +106,7 @@ void systemcallHandler(state_t* exceptionState) {
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
-            if (isInPcbFree_h(dest_process->p_pid)) {
+            if (is_in_pcbfee_sas(dest_process)) {
                 //il processo di destinazione è nella lista pcbFree_h
                 KLOG_ERROR("SENDMESSAGE dest is in pcbFree_h");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
