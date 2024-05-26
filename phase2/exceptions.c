@@ -28,10 +28,12 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
-        KLOG_PANIC("WTF");
+        KLOG_ERROR("WTF");
+    } else {
+        process_kill(current_process);
     }
     KLOG_ERROR("bad process killed");
-    process_kill(current_process);
+    
     scheduler();
   }
   // salva lo stato del processo
@@ -115,7 +117,7 @@ void systemcallHandler(state_t* exceptionState) {
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
-            if (is_in_pcbfee_sas(dest_process)) {
+            if (isInPcbFree_h(dest_process->p_pid)) {
                 //il processo di destinazione è nella lista pcbFree_h
                 KLOG_ERROR("SENDMESSAGE dest is in pcbFree_h");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
