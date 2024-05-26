@@ -27,9 +27,11 @@ void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_
 void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
+    if (current_process == NULL) {
+        KLOG_PANIC("WTF");
+    }
     KLOG_ERROR("bad process killed");
     process_kill(current_process);
-    current_process = NULL;
     scheduler();
   }
   // salva lo stato del processo
@@ -68,8 +70,15 @@ void exceptionHandler() {
         TLBExceptionHandler(exception_state);
     }
     else if ((ExcCode >= 4 && ExcCode <= 7) || (ExcCode >= 9 && ExcCode <= 12)) {
-        KLOG_ERROR("trap code");
-        klog_print_dec(ExcCode);
+        /*KLOG_ERROR("trap code");
+        klog_print_dec(ExcCode);*/
+        if  (ExcCode == 4) {
+            
+            klogprint_current_pcb_name();
+            KLOG_ERROR(" access bad memory");
+            
+            //KLOG_PANIC("Address Error Exception: on a Load or instruction fetch");
+        }
         TrapExceptionHandler(exception_state);
     }
     else if (ExcCode == SYSEXCEPTION) {
@@ -77,7 +86,7 @@ void exceptionHandler() {
             systemcallHandler(exception_state);
         else {
             KLOG_ERROR("SYSCALL not in kernel mode");
-            exception_state->cause = PRIVINSTR;
+            exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
             TrapExceptionHandler(exception_state);
         }    
     } else {

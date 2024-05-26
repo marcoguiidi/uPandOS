@@ -37,4 +37,7 @@ cpu_t get_elapsed_time();
 
 int is_in_pcbfee_sas(pcb_t* process);
 
+
+void klogprint_current_pcb_name();
+
 #endif

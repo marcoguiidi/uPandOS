@@ -18,8 +18,6 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <umps/libumps.h>
-#include <umps3/umps/libumps.h>
-#include "../klog.h"
 
 typedef unsigned int devregtr;
 
@@ -119,9 +117,8 @@ void print()
             SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
             SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
 
-            if ((status & TERMSTATMASK) != RECVD) {
-                KLOG_PANIC("t123");
-            }
+            if ((status & TERMSTATMASK) != RECVD)
+                PANIC();
 
             s++;
         }
@@ -184,10 +181,8 @@ void test()
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
     pcb_PTR sender = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
 
-    if (sender != test_pcb) {
-        KLOG_PANIC("t188");
-    }
-    // :) PASS
+    if (sender != test_pcb)
+        PANIC();
 
     // init print process
     STST(&printstate);
@@ -198,10 +193,9 @@ void test()
     // create print process
     print_pcb = create_process(&printstate);
 
-    if ((int)print_pcb == NOPROC) {
-        KLOG_PANIC("t201");
-    }
-    // PASS :)
+    if ((int)print_pcb == NOPROC)
+        PANIC();
+
     // test print process
     print_term0("Don't Panic.\n");
 
@@ -387,7 +381,7 @@ void test()
         p8pid = p8root_pcb->p_pid;
 
         SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, START, 0);
-        SYSCALL(RECEIVEMESSAGE, (unsigned int)p8root_pcb, 0, 0);        
+        SYSCALL(RECEIVEMESSAGE, (unsigned int)p8root_pcb, 0, 0);
 
         // wait a bit for process termination
         for (int i = 0; i < 10; i++)
@@ -421,7 +415,6 @@ void test()
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p9_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p10_pcb, 0, 0);
 
-    KLOG_PANIC("t425");
     terminate_process(p9_pcb);
 
     // check test_pcb child's length
@@ -435,15 +428,12 @@ void test()
 
     print_term0("A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.\n");
 
-    KLOG_PANIC("t439");
     terminate_process(SELF);
 
     /* should not reach this point, since p1 just got a program trap */
     print_term0("ERROR: p1 still alive after terminate\n");
-    KLOG_PANIC("t439");
+    PANIC();
 }
-
-// FATTO :)
 
 /* p2 -- sync and cputime-SYS test process */
 void p2()
@@ -455,7 +445,6 @@ void p2()
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
 
     print_term0("p2 started correctly\n");
-    // PASS :)
 
     int pid;
     ssi_payload_t get_process_payload = {
@@ -507,7 +496,7 @@ void p2()
 
     /* just did a TERMPROCESS, so should not get to this point */
     print_term0("ERROR: p2 didn't terminate\n");
-    KLOG_PANIC("t506");
+    PANIC();
 }
 
 /* p3 -- gettime and clockwait test process */
@@ -532,7 +521,6 @@ void p3()
     }
 
     print_term0("p3 - CLOCKWAIT OK\n");
-    // arrivati qua
 
     /* now let's check to see if we're really charge for CPU time correctly */
     ssi_payload_t get_time_payload = {
@@ -570,7 +558,7 @@ void p3()
 
     /* just did a TERMPROCESS, so should not get to this point */
     print_term0("ERROR: p3 didn't terminate\n");
-    KLOG_PANIC("t569");
+    PANIC();
 }
 
 /* p4 -- termination test process */
@@ -591,7 +579,7 @@ void p4()
         SYSCALL(RECEIVEMESSAGE, (unsigned int)ANYMESSAGE, 0, 0);
 
         print_term0("ERROR: second incarnation of p4 didn't terminate\n");
-        KLOG_PANIC("t590");
+        PANIC();
         break;
     }
 
@@ -609,13 +597,12 @@ void p4()
     // notify p4 ended
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
 
-
     // this TERMPROCESS should terminate p4 seecond incarnation
     terminate_process(SELF);
 
     /* just did a TERMPROCESS, so should not get to this point */
     print_term0("ERROR: first incarnation of p4 didn't terminate\n");
-    KLOG_PANIC("t613");
+    PANIC();
 }
 
 /* p5's program trap handler */
@@ -653,7 +640,7 @@ void p5gen()
 
     default:
         print_term0("ERROR: other program trap\n");
-        KLOG_PANIC("t651"); // to avoid sys call looping just exit the program
+        PANIC(); // to avoid sys call looping just exit the program
     }
 
     LDST(&(pFiveSupport.sup_exceptState[GENERALEXCEPT]));
@@ -733,12 +720,11 @@ void p5b()
     SYSCALL(1, 0, 0, 0);
 
     print_term0("p5 ok\n");
-
     terminate_process(SELF);
 
     /* should have terminated, so should not get to this point */
     print_term0("ERROR: p5 didn't terminate\n");
-    KLOG_PANIC("t735");
+    PANIC();
 }
 
 /*p6 -- high level syscall without initializing passup vector */
@@ -750,7 +736,7 @@ void p6()
     SYSCALL(1, 0, 0, 0); /* should cause termination because p6 has no trap vector */
 
     print_term0("ERROR: p6 alive after SYS9() with no trap vector\n");
-    KLOG_PANIC("t747");
+    PANIC();
 }
 
 /*p7 -- program trap without initializing passup vector */
@@ -762,7 +748,7 @@ void p7()
     *((memaddr *)BADADDR) = 0;
 
     print_term0("ERROR: p7 alive after program trap with no trap vector\n");
-    KLOG_PANIC("t759");
+    PANIC();
 }
 
 void p8()
@@ -779,12 +765,11 @@ void p8()
     print_term0("p8 ok\n");
 
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
-
     terminate_process(SELF);
 
     /* just did a TERMPROCESS, so should not get to this point */
     print_term0("ERROR: p8 didn't terminate\n");
-    KLOG_PANIC("t780");
+    PANIC();
 }
 
 /* p8root -- test of termination of subtree of processes              */
@@ -806,11 +791,10 @@ void p8root()
 
     // notify test_pcb
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
-
     terminate_process(SELF);
 
     print_term0("ERROR: p8root didn't terminate\n");
-    KLOG_PANIC("t805");
+    PANIC();
 }
 
 /*child1 & child2 -- create two sub-processes each*/
@@ -913,11 +897,10 @@ void p10()
 
     print_term0("p9 and p10 ok\n");
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
-
     terminate_process(SELF);
 
     print_term0("ERROR: p10 didn't die with its parent!\n");
-    KLOG_PANIC("t911");
+    PANIC();
 }
 
 void hp_p1()
@@ -927,7 +910,7 @@ void hp_p1()
     terminate_process(SELF);
 
     print_term0("ERROR: hp_p1 didn't die!\n");
-    KLOG_PANIC("t921");
+    PANIC();
 }
 
 void hp_p2()
@@ -940,5 +923,5 @@ void hp_p2()
     terminate_process(SELF);
 
     print_term0("ERROR: hp_p2 didn't die!\n");
-    KLOG_PANIC("t34");
+    PANIC();
 }
