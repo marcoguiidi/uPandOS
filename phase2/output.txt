@@ -26,15 +26,15 @@
 - p8root starts
 - Correct Support Structure Address
 - child1 starts
-child2 starts
+- child2 starts
 - Address Error (as expected): non-kuseg access w/KU=1
-leaf process (1) starts
-leaf process (2) starts
-leaf process (3) starts
+- leaf process (1) starts
+- leaf process (2) starts
+- leaf process (3) starts
 leaf process (4) starts
-- p5sys enter
-- High level SYS call from kernel mode process
-- p5 ok
+p5sys enter
+High level SYS call from kernel mode process
+p5 ok
 p8root starts
 child1 starts
 child2 starts

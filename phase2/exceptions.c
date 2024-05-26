@@ -29,9 +29,8 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
         KLOG_ERROR("WTF");
-    } else {
-        process_kill(current_process);
     }
+    terminateprocess(current_process);
     KLOG_ERROR("bad process killed");
     
     scheduler();
@@ -78,8 +77,6 @@ void exceptionHandler() {
             
             klogprint_current_pcb_name();
             KLOG_ERROR(" access bad memory");
-            
-            //KLOG_PANIC("Address Error Exception: on a Load or instruction fetch");
         }
         TrapExceptionHandler(exception_state);
     }

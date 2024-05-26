@@ -96,6 +96,9 @@ void process_kill(pcb_t *process) {
 }
 
 void terminateprocess(pcb_t* process) {
+    if (process == NULL || isInPcbFree_h(process->p_pid)) {
+        return;
+    }
     while (!emptyChild(process)) {
         pcb_t* child = removeChild(process);
         terminateprocess(child);
