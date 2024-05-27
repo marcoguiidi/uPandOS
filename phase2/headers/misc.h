@@ -19,6 +19,8 @@ unsigned int new_pid();
 
 void process_spawn(pcb_t* process);
 
+int is_pid_in_list(unsigned int pid, struct list_head* list);
+
 int isInPcbFree_h(unsigned int pid);
 
 pcb_t* out_pcb_in_all(pcb_t* pcb);
@@ -39,5 +41,7 @@ int is_in_pcbfee_sas(pcb_t* process);
 void klogprint_current_pcb_name();
 
 void process_killall(pcb_t *process);
+
+void deadlock_logs();
 
 #endif

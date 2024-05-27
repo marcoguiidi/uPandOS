@@ -28,7 +28,8 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
-        KLOG_ERROR("WTF");
+        deadlock_logs();
+        KLOG_PANIC("WTF");
     } else {
         process_killall(current_process);
     }
@@ -72,13 +73,6 @@ void exceptionHandler() {
         TLBExceptionHandler(exception_state);
     }
     else if ((ExcCode >= 4 && ExcCode <= 7) || (ExcCode >= 9 && ExcCode <= 12)) {
-        /*KLOG_ERROR("trap code");
-        klog_print_dec(ExcCode);*/
-        if  (ExcCode == 4) {
-            
-            klogprint_current_pcb_name();
-            KLOG_ERROR(" access bad memory");
-        }
         TrapExceptionHandler(exception_state);
     }
     else if (ExcCode == SYSEXCEPTION) {

@@ -18,6 +18,7 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <umps/libumps.h>
+#include <umps3/umps/libumps.h>
 #include "../klog.h"
 
 typedef unsigned int devregtr;
