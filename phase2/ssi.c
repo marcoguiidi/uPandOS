@@ -36,7 +36,6 @@ void SSI_function_entry_point() {
         SSIRequest(sender, payload->service_code, payload->arg);
     }
 }
-void killProgeny(pcb_t *sender);
 
 void SSIRequest(pcb_t* sender, int service, void* arg) {
     switch (service) {
@@ -57,10 +56,10 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             break;
         case TERMPROCESS:
             if (arg == NULL) {
-                terminateprocess(sender);
+                process_killall(sender);
             } else {
                 pcb_t* processtokill = (pcb_t*)arg;
-                terminateprocess(processtokill);
+                process_killall(processtokill);
                 SYSCALL(SENDMESSAGE, sender, 0, 0); // response
             }
             
@@ -120,7 +119,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             */
             klog_print_dec(service);
             KLOG_ERROR(" <-service not found");
-            terminateprocess(sender);
+            process_killall(sender);
             break;
     }
 }

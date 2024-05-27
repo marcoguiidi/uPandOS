@@ -68,6 +68,10 @@ void process_spawn(pcb_t *process) {
 }
 
 pcb_t* out_pcb_in_all(pcb_t* pcb) {
+    if (pcb == current_process) {
+        current_process = NULL;
+        return pcb;
+    }
     pcb_t* retpcb = NULL;
     if ((retpcb = outProcQ(&ready_queue, pcb)) == NULL) {
         for (int i = 0; i < BLOCKED_QUEUE_NUM; i++) {
@@ -80,30 +84,25 @@ pcb_t* out_pcb_in_all(pcb_t* pcb) {
     return retpcb;
 }
 
-void process_kill(pcb_t *process) {
-    if (process == ssi_pcb) {
-        KLOG_PANIC("someone is murdering the ssi :(");
-    }
-    if (process == current_process) {
-        KLOG_ERROR("?? killing current process");
-        current_process = NULL;
-    } else if (out_pcb_in_all(process) == NULL) {
-        KLOG_PANIC("pcb not found");
-    }
-    process_count--;
-    
-    freePcb(process);
-}
-
-void terminateprocess(pcb_t* process) {
+void process_killall(pcb_t *process) {
     if (process == NULL || isInPcbFree_h(process->p_pid)) {
         return;
     }
+
+    outChild(process); // detach from parent, now parent have one less children
+
+    pcb_t* child;
     while (!emptyChild(process)) {
-        pcb_t* child = removeChild(process);
-        terminateprocess(child);
+        child = removeChild(process);
+        process_killall(child);
     }
-    process_kill(process);
+
+    if (out_pcb_in_all(process) == NULL) { // extract from all queues, cannot run again
+        KLOG_PANIC("pcb not found");
+    }
+
+    freePcb(process); // pcb is now reusable
+    process_count--;
 }
 
 int isInPcbFree_h(unsigned int pid) {

@@ -34,11 +34,6 @@ void PLTinterrupt();
 */
 void ITinterrupt();
 
-/*
-* returns the devNo associated
-*/
-int calcDevNo(unsigned int address);
-
 void TrapExceptionHandler(state_t *exec_state);
 void TLBExceptionHandler(state_t *exec_state);
 

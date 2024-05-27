@@ -31,22 +31,19 @@
 - leaf process (1) starts
 - leaf process (2) starts
 - leaf process (3) starts
-leaf process (4) starts
-p5sys enter
-High level SYS call from kernel mode process
-p5 ok
-p8root starts
-child1 starts
-child2 starts
-leaf process (1) starts
-leaf process (2) starts
-leaf process (3) starts
-leaf process (4) starts
-p9 starts
-p10 starts
-p9 and p10 ok
-A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
+- leaf process (4) starts
+- p5sys enter
+- High level SYS call from kernel mode process
+- p5 ok
+- p8root starts
+- child1 starts
+- child2 starts
+- leaf process (1) starts
+- leaf process (2) starts
+- leaf process (3) starts
+- leaf process (4) starts
+- p9 starts
+- p10 starts
+- p9 and p10 ok
+- A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
 System halted
-
-============
-OK p2 p4 p5

@@ -49,15 +49,6 @@ void nonTimerInterrupt(int line){
     /* 1
     * calculate address of this device device's register
     */
-    unsigned int devAddrBase;
-    unsigned int add;
-    int devNo;
-
-    // cercare il primo bit acceso all'interno della word associata a quell' indirizzo e assegnarlo a devNo
-    devNo = calcDevNo(add);
-
-    // calcolo indirizzo base
-    devAddrBase = 0x10000054 + (line * 0x80) + (devNo * 0x10);
 
     /* 2 && 3
     * save off status code && ACK command the outstanding interrupt
@@ -89,9 +80,10 @@ void nonTimerInterrupt(int line){
     
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");
-    } else {
-        soft_block_count--;
     }
+    
+    soft_block_count--;
+    
 
     msg_t* msg = allocMsg();
     if (msg == NULL) { // messaggi finiti
@@ -163,35 +155,9 @@ void ITinterrupt(){
 
     if (current_process == NULL) {
         scheduler();
-    } 
-    /* 3
-    * return control to current process
-    */
-    current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
-    LDST((state_t*)BIOSDATAPAGE);
-
-}
-
-int calcDevNo(unsigned int address){
-    unsigned int* word = address;
-    
-    if (*word & DEV0ON){
-        return 0;
-    }else if (*word & DEV1ON){
-        return 1;
-    }else if (*word & DEV2ON){
-        return 2;
-    }else if (*word & DEV3ON){
-        return 3;
-    }else if (*word & DEV4ON){
-        return 4;
-    }else if (*word & DEV5ON){
-        return 5;
-    }else if (*word & DEV6ON){
-        return 6;
-    }else if (*word & DEV7ON){
-        return 7;
+    } else {
+        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
+        LDST((state_t*)BIOSDATAPAGE);
     }
 
-    return -1;
 }

@@ -29,8 +29,9 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
         KLOG_ERROR("WTF");
+    } else {
+        process_killall(current_process);
     }
-    terminateprocess(current_process);
     KLOG_ERROR("bad process killed");
     
     scheduler();
