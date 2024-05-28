@@ -28,12 +28,10 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
 
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
-        deadlock_logs();
-        KLOG_PANIC("WTF");
+        KLOG_PANIC("unknown process to kill");
     } else {
         process_killall(current_process);
     }
-    KLOG_ERROR("bad process killed");
     
     scheduler();
   }
@@ -79,7 +77,6 @@ void exceptionHandler() {
         if (was_in_kernel_mode)
             systemcallHandler(exception_state);
         else {
-            KLOG_ERROR("SYSCALL not in kernel mode");
             exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
             TrapExceptionHandler(exception_state);
         }    
@@ -105,20 +102,18 @@ void systemcallHandler(state_t* exceptionState) {
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
             if (reg_A1 == 0) {
-                KLOG_ERROR("SENDMESSAGE dest is NULL");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
                 //il processo di destinazione è nella lista pcbFree_h
-                KLOG_ERROR("SENDMESSAGE dest is in pcbFree_h");
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
                 break;   
             }
             // alloco messaggio
             msg = allocMsg();
             if (msg == NULL) {
-                KLOG_ERROR("msg all used");
+                KLOG_PANIC("msg all used");
                 exceptionState->reg_v0 = MSGNOGOOD; // messaggi liberi esauriti
                 break;                
             }
@@ -175,7 +170,6 @@ void systemcallHandler(state_t* exceptionState) {
             break;
         
         default:
-            KLOG_ERROR("SYSCALL code unkown");
             TrapExceptionHandler(exceptionState);
             break;
     }

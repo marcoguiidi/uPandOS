@@ -9,7 +9,9 @@ propriate messages for the blocked PCBs.
 #include "headers/misc.h"
 #include "headers/scheduler.h"
 #include <umps3/umps/const.h>
+#include <umps3/umps/cp0.h>
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 #include "headers/exceptions.h"
 #include "../klog.h"
 
@@ -46,37 +48,94 @@ void interruptHandler(){
 
 void nonTimerInterrupt(int line){
 
-    /* 1
-    * calculate address of this device device's register
-    */
 
-    /* 2 && 3
-    * save off status code && ACK command the outstanding interrupt
-    */
-    devreg_t* devReg =  0x10000254; //devAddrBase;
+    // calulate the device number
+    unsigned int cause = getCAUSE();
+    unsigned int devnum;
+    unsigned int* installed_device_map;
     
-    /*if (line == 7){
-        if (devReg->term.transm_status & mask){  // codice 5 nel campo status del device register del terminale
-            statusCode = devReg->term.transm_status; 
-            devReg->term.transm_command = ACK;
-        }else{
-            statusCode = devReg->term.recv_status;
-            devReg->term.recv_command = ACK;
-        }
-    }else{
-        statusCode = devReg->dtp.status;
-        devReg->dtp.command = ACK;
-    }*/
-    unsigned int statusCodeRaw = devReg->term.transm_status;
+    // get installed device bitmap for a given line
+    switch (line) {
+        case 3:
+            installed_device_map = 0x1000002c;
+            break;
+        case 4:
+            installed_device_map = 0x1000002c + 0x04;
+            break;
+        case 5:
+            installed_device_map = 0x1000002c + 0x08;
+            break;
+        case 6:
+            installed_device_map = 0x1000002c + 0x0c;
+            break;
+        case 7:
+            installed_device_map = 0x1000002c + 0x10;
+            break;
+        default:
+            KLOG_PANIC("line don't match");
+    }
 
-    devReg->term.transm_command = ACK;
+    // get the first installed device for that line
+    switch (*installed_device_map) {
+        case DEV0ON:
+            devnum = 0;
+            break;
+        case DEV1ON:
+            devnum = 1;
+            break;
+        case DEV2ON:
+            devnum = 2;
+            break;
+        case DEV3ON:
+            devnum = 3;
+            break;
+        case DEV4ON:
+            devnum = 4;
+            break;
+        case DEV5ON:
+            devnum = 5;
+            break;
+        case DEV6ON:
+            devnum = 6;
+            break;
+        case DEV7ON:
+            devnum = 7;
+            break;
+        default:
+            KLOG_PANIC("installed_device_map don't match");
+    }
+    
 
-    /* 4
-    * send message to unblock caller pcb
-    */
-    int terminalline = 7;
-    int terminalnumber = 0;
-    pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(terminalline, terminalnumber)]);
+    unsigned int devAddrBase = 0x10000054 + ((line - 3) * 0x80) + (devnum * 0x10);
+    unsigned int statusCodeRaw;
+    // use a given device accordingly for his type
+    switch (line) {
+        case 3:
+            // disk device
+            break;
+        case 4:
+            // flash device
+            break;
+        case 5:
+            // network device
+            break;
+        case 6:
+            // printer device
+            break;
+        case 7:
+            // terminal device
+            ;
+            devreg_t* devReg =  (devreg_t*)devAddrBase;
+
+            statusCodeRaw = devReg->term.transm_status; // save status code
+            devReg->term.transm_command = ACK; // ack device
+
+            break;
+        default:
+            KLOG_PANIC("line don't match");
+    }
+    
+    pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devnum)]);
     
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");

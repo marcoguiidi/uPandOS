@@ -12,21 +12,6 @@ ssi.c This module implements the System Service Interface process.
 #include "headers/p2test.h"
 #include "headers/scheduler.h"
 
-
-int devAddrBase_get_IntlineNo_DevNo(unsigned int devAddrBase, int* IntlineNo, int* DevNo) {
-    // bruteforce da cambiare magari
-    for (int intlineno = 0; intlineno <= 8; intlineno++) {
-        for (int devno = 0; devno <= DEV7ON; devno++) {
-            if (devAddrBase == (0x10000054 + ((intlineno - 3) * 0x80) + (devno * 0x10))) {
-                *IntlineNo = intlineno;
-                *DevNo = devno;
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 void SSI_function_entry_point() {
     ssi_payload_t* payload;
     pcb_t* sender;
@@ -68,13 +53,12 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             // TODO: DoIO
             ;
             ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
+            
             /*
-            uso sempre il terinale che è questo da mettere a posto
-            doio->commandAddr fa un exception
+            print to the first terminal
             */
             int devno = 0;
             int intlineno = 7;
-            //devAddrBase_get_IntlineNo_DevNo(doio->commandAddr, &intlineno, &devno);
 
             pcb_t* suspended_process = out_pcb_in_all(sender);
             if (suspended_process == NULL) {
@@ -118,7 +102,6 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             and its progeny
             */
             klog_print_dec(service);
-            KLOG_ERROR(" <-service not found");
             process_killall(sender);
             break;
     }
