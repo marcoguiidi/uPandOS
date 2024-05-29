@@ -21,6 +21,8 @@ void SSI_function_entry_point() {
     }
 }
 
+const unsigned int *term0print = (unsigned int *)(0x10000254) + 3;
+
 void SSIRequest(pcb_t* sender, int service, void* arg) {
     switch (service) {
         case CREATEPROCESS:
@@ -51,13 +53,18 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
         case DOIO:
             ;
             ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
-            
-            /*
-            print to the first terminal
-            */
-            int devno = 0;
-            int intlineno = 7;
 
+            
+            int devno;
+            int intlineno;
+            // match konwn devices
+            if (doioarg->commandAddr == term0print) {
+                devno = 0;
+                intlineno = 7;
+            } else {
+                KLOG_PANIC("device not konwn")
+            }
+            
             pcb_t* suspended_process = out_pcb_in_all(sender);
             if (suspended_process == NULL) {
                 KLOG_PANIC("pcb not found");
