@@ -44,12 +44,13 @@ void interruptHandler(){
     }
 }
 
+/*+
+handle interrupts all the devices
 
-
+when a device finis a operation instead of sending the status to the SSI, 
+emulate a SENDMESSAGE call to the waiting pcb and set the sender to ssi_pcb
+*/
 void nonTimerInterrupt(int line){
-
-
-    // calulate the device number
     unsigned int cause = getCAUSE();
     unsigned int devnum;
     unsigned int* installed_device_map;
@@ -103,6 +104,7 @@ void nonTimerInterrupt(int line){
             break;
         default:
             KLOG_PANIC("installed_device_map don't match");
+            break;
     }
     
 
@@ -133,6 +135,7 @@ void nonTimerInterrupt(int line){
             break;
         default:
             KLOG_PANIC("line don't match");
+            break;
     }
     
     pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devnum)]);
@@ -140,14 +143,15 @@ void nonTimerInterrupt(int line){
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");
     }
-    
     soft_block_count--;
     
 
     msg_t* msg = allocMsg();
     if (msg == NULL) { // messaggi finiti
-        KLOG_PANIC("messaggi finiti");
+        KLOG_PANIC("no more free messages");
     }
+
+    // emulate a SENDMESSAGE syscall
     msg->m_sender = ssi_pcb; 
     msg->m_payload = statusCodeRaw;
     pushMessage(&unblocked->msg_inbox, msg);
@@ -177,10 +181,10 @@ void PLTinterrupt(){
     state_t *saved = (state_t*)BIOSDATAPAGE;
 
     if (current_process != NULL) {
-        copy_state_t(saved, &current_process->p_s);
-        current_process->p_time += get_elapsed_time(); // time elapsed in interrupts doesn't count
-        current_process->p_time -= get_elapsed_time_interupt();
-        insertProcQ(&ready_queue, current_process);
+        copy_state_t(saved, &current_process->p_s); // save the current state
+        current_process->p_time += get_elapsed_time();
+        current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
+        insertProcQ(&ready_queue, current_process); // make process ready
         current_process = NULL;
     } else {
         KLOG_PANIC("pcb is NULL");

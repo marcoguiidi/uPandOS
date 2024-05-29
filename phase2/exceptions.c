@@ -11,7 +11,6 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "headers/interrupts.h"
 #include <umps3/umps/libumps.h>
 #include "../klog.h"
-#include "headers/p2test.h"
 
 void uTLB_RefillHandler() {
     setENTRYHI(0x80000000);
@@ -62,7 +61,7 @@ void exceptionHandler() {
     unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);//(cause & GETEXECCODE) >> CAUSESHIFT;
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
 
-    unsigned int was_in_kernel_mode = IN_KERNEL_MODE(exception_state->cause);
+    unsigned int was_in_kernel_mode = in_kernel_mode(exception_state->cause);
     
     if (ExcCode == IOINTERRUPTS) {
         interruptHandler();

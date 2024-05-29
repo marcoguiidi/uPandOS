@@ -132,7 +132,7 @@ int main(void) {
     /*
     call the scheduler (1.8) 
     */
-    scheduler(); //TODO:
+    scheduler();
 
     return 0;
 }
