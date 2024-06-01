@@ -34,7 +34,7 @@ void interruptHandler(){
                 nonTimerInterrupt(line);
             }else if (line == 1){
                 PLTinterrupt();
-            }else if (line == 2){ // va sempre qua
+            }else if (line == 2){
                 ITinterrupt();
             } else {
                 KLOG_PANIC("interrupt not resolved");
@@ -47,7 +47,7 @@ void interruptHandler(){
 /*+
 handle interrupts all the devices
 
-when a device finis a operation instead of sending the status to the SSI, 
+when a device finish a operation instead of sending the status to the SSI, 
 emulate a SENDMESSAGE call to the waiting pcb and set the sender to ssi_pcb
 */
 void nonTimerInterrupt(int line){
@@ -107,43 +107,76 @@ void nonTimerInterrupt(int line){
             break;
     }
     
-
+    /*
+    * 1 calculate the address for this device's device register
+    */
     unsigned int devAddrBase = 0x10000054 + ((line - 3) * 0x80) + (devnum * 0x10);
     unsigned int statusCodeRaw;
+    devreg_t* devReg =  (devreg_t*)devAddrBase;
     // use a given device accordingly for his type
+
+    /**
+    * 2 Save off the status code from the device’s device register.
+    * 
+    */
+
+    /**
+    * 3 Acknowledge the outstanding interrupt
+    * 
+    */
     switch (line) {
         case 3:
             // disk device
+            ;
+            statusCodeRaw = devReg->dtp.status; 
+            devReg->dtp.command = ACK;
             break;
         case 4:
             // flash device
+            ;
+            statusCodeRaw = devReg->dtp.status; 
+            devReg->dtp.command = ACK;
             break;
         case 5:
             // network device
+            ;
+            statusCodeRaw = devReg->dtp.status; 
+            devReg->dtp.command = ACK;
             break;
         case 6:
             // printer device
+            ;
+            statusCodeRaw = devReg->dtp.status; 
+            devReg->dtp.command = ACK;
             break;
         case 7:
             // terminal device
             ;
             devreg_t* devReg =  (devreg_t*)devAddrBase;
-
-            statusCodeRaw = devReg->term.transm_status; // save status code
-            devReg->term.transm_command = ACK; // ack device
-
+            statusCodeRaw = devReg->term.transm_status; 
+            devReg->term.transm_command = ACK; 
             break;
         default:
             KLOG_PANIC("line don't match");
             break;
     }
     
+    /**
+     * 4 unblock the process (pcb) which initiated this I/O operation
+     * 
+     */
     pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devnum)]);
     
     if (unblocked == NULL) {
         KLOG_PANIC("pcb not found");
     }
     soft_block_count--;
+
+    /**
+     * 5 Place the stored off status code in the newly unblocked pcb’s v0 register.
+     * 
+     */
+    unblocked->p_s.reg_v0 = statusCodeRaw;
     
 
     msg_t* msg = allocMsg();
@@ -151,7 +184,10 @@ void nonTimerInterrupt(int line){
         KLOG_PANIC("no more free messages");
     }
 
-    // emulate a SENDMESSAGE syscall
+    /**
+     * 6 Insert the newly unblocked pcb on the Ready Queue
+     * 
+     */
     msg->m_sender = ssi_pcb; 
     msg->m_payload = statusCodeRaw;
     pushMessage(&unblocked->msg_inbox, msg);
@@ -160,7 +196,7 @@ void nonTimerInterrupt(int line){
     /* 7
      * return control to current process
     */
-    if (current_process == NULL) {
+    if (current_process == NULL) { // if there is no current process, call the scheduler
         scheduler();
     } else {
         current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
@@ -180,6 +216,9 @@ void PLTinterrupt(){
     */
     state_t *saved = (state_t*)BIOSDATAPAGE;
 
+    /*
+     * 3 Place the Current Process on the Ready Queue 
+     */
     if (current_process != NULL) {
         copy_state_t(saved, &current_process->p_s); // save the current state
         current_process->p_time += get_elapsed_time();
@@ -207,8 +246,8 @@ void ITinterrupt(){
     * unblock all pcbs waiting a pseudo clock tick
     */
     pcb_t* pcb_to_unblock;
-    while ((pcb_to_unblock = removeProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK])) != NULL) {
-        insertProcQ(&ready_queue, pcb_to_unblock);
+    while ((pcb_to_unblock = removeProcQ(&blocked_pcbs[BOLCKEDPSEUDOCLOCK])) != NULL) { // untill there is a process blocked
+        insertProcQ(&ready_queue, pcb_to_unblock); // insert in ready queue
         msg_PTR msg = allocMsg();
         msg->m_sender = ssi_pcb;
         msg->m_payload = 0;
@@ -216,7 +255,11 @@ void ITinterrupt(){
         soft_block_count--;
     }
 
-    if (current_process == NULL) {
+    /**
+     * 4 return control to current process
+     * 
+     */
+    if (current_process == NULL) { // if there is no process call the scheduler
         scheduler();
     } else {
         current_process->p_time -= get_elapsed_time_interupt(); // time elapsed in interrupts doesn't count
