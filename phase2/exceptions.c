@@ -6,9 +6,10 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "./headers/exceptions.h"
 #include "headers/misc.h"
 #include "headers/initial.h"
-#include "../phase1/headers/msg.h"
 #include "headers/scheduler.h"
 #include "headers/interrupts.h"
+
+#include "../phase1/headers/msg.h"
 #include <umps3/umps/libumps.h>
 #include "../klog.h"
 
@@ -20,11 +21,15 @@ void uTLB_RefillHandler() {
 }
 
 
-void TrapExceptionHandler(state_t *exec_state) { passUpOrDie(GENERALEXCEPT, exec_state); }
-void TLBExceptionHandler(state_t *exec_state) { passUpOrDie(PGFAULTEXCEPT, exec_state); }
+void TrapExceptionHandler(state_t *exec_state) { 
+    passUpOrDie(GENERALEXCEPT, exec_state); 
+}
+
+void TLBExceptionHandler(state_t *exec_state) {
+     passUpOrDie(PGFAULTEXCEPT, exec_state); 
+}
 
 void passUpOrDie(unsigned type, state_t *exec_state) {
-
   if (current_process == NULL || current_process->p_supportStruct == NULL) {
     if (current_process == NULL) {
         KLOG_PANIC("unknown process to kill");
@@ -37,7 +42,7 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   // salva lo stato del processo
   copy_state_t(exec_state, &current_process->p_supportStruct->sup_exceptState[type]);
   
-  // update cput time
+  // aggiorna cput time
   current_process->p_time += get_elapsed_time();
   current_process->p_time -= get_elapsed_time_interupt();
   
@@ -46,21 +51,19 @@ void passUpOrDie(unsigned type, state_t *exec_state) {
   LDCXT(context_pass_to.stackPtr, context_pass_to.status, context_pass_to.pc);
 }
 
-/**
+/*
 time saved when entering exception,
-time used in sycall is counted
+time used in sycall is counted, 
+tracking of time spent in excHandler
 */
-cpu_t interrupt_enter_time;
+cpu_t interrupt_enter_time
 
-// Exception handler function
 void exceptionHandler() {
-    // Perform a multi-way branch depending on the cause of the exception
     STCK(interrupt_enter_time);
-
+    //STCK legge il valore del registro del contatore di clock e lo memorizza nella var interrupt_enter_time
     unsigned int cause  = getCAUSE();
-    unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);//(cause & GETEXECCODE) >> CAUSESHIFT;
+    unsigned int ExcCode = CAUSE_GET_EXCCODE(cause);
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
-
     unsigned int was_in_kernel_mode = in_kernel_mode(exception_state->cause);
     
     if (ExcCode == IOINTERRUPTS) {
@@ -87,25 +90,26 @@ void exceptionHandler() {
 void systemcallHandler(state_t* exceptionState) {
     // syscall type
     int reg_A0 = exceptionState->reg_a0;
-    // process
+    // dest process
     unsigned int reg_A1 = exceptionState->reg_a1;
-    // payload
+    // payload of the mex
     int reg_A2 = exceptionState->reg_a2;
 
     msg_t *msg;
 
-    
     switch (reg_A0) {
+    //perform a multi-way branching depending on the type of exception
         case SENDMESSAGE:
-            ;
+            
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
-            if (reg_A1 == 0) {
+            if (reg_A1 == 0) { 
+                //non è stato dato un puntatore valido per il dest process
                 exceptionState->reg_v0 = DEST_NOT_EXIST;
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
-                //il processo di destinazione è nella lista pcbFree_h
+                //il processo di destinazione è nella lista pcbFree_h => non puo ricevere mex
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
                 break;   
             }
@@ -124,21 +128,23 @@ void systemcallHandler(state_t* exceptionState) {
             msg->m_payload = (unsigned int)reg_A2;
             msg->m_sender = current_process;
             
-            if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // is blocked
-                // is waiting, unblock it
+            if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // dest_process is blocked
+                // dest_process is waiting for a mex, unblock it
                 insertProcQ(&ready_queue, dest_process);
-                soft_block_count--;
+                soft_block_count--;  // decrease the blocked processes counter, one is ready
             }
-            // add message to dest
-            insertMessage(&dest_process->msg_inbox, msg);
-            exceptionState->reg_v0 = 0; // succes
+            // add new message to dest inbox
+            insertMessage(&dest_process->msg_inbox, msg); 
+            exceptionState->reg_v0 = 0; // success
 
-            current_process->p_time -= get_elapsed_time_interupt();
+            current_process->p_time -= get_elapsed_time_interupt(); 
+            //updated by subtracting the time elapsed during the interrupt
             break;
 
         case RECEIVEMESSAGE:
-            ;
+            
             pcb_t *sender_process = (pcb_PTR)reg_A1;
+            //extract mex from inbox
             msg = popMessage(&current_process->msg_inbox, sender_process);
             
             // no message, wait
@@ -161,7 +167,7 @@ void systemcallHandler(state_t* exceptionState) {
             exceptionState->reg_v0 = (unsigned int)msg->m_sender;
 
             if (reg_A2 != 0) {
-                // save message if has one
+                // save payload of the mex if there is one
                 *((unsigned int*)reg_A2) = (unsigned int)msg->m_payload;
             }
 
@@ -173,6 +179,9 @@ void systemcallHandler(state_t* exceptionState) {
             break;
     }
     // reuturn from non bloking
-    exceptionState->pc_epc += WORDLEN;
+    exceptionState->pc_epc += WORDLEN; //pc updated
+    /*move the PC to the next instruction, avoiding entering an 
+    infinite loop that would repeat the same syscall*/
     LDST(exceptionState);
+    //restores processor state
 }

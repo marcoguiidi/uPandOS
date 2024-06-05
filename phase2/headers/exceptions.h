@@ -16,12 +16,16 @@
 
 extern cpu_t interrupt_enter_time;
 
+void uTLB_RefillHandler();
+
+void TrapExceptionHandler(state_t *exec_state);
+
+void TLBExceptionHandler(state_t *exec_state);
+
+void passUpOrDie(unsigned type, state_t *exec_state);
+
 void exceptionHandler(); 
 
 void systemcallHandler(state_t* exceptionState);
-
-void uTLB_RefillHandler();
-
-void passUpOrDie(unsigned type, state_t *exec_state);
 
 #endif
