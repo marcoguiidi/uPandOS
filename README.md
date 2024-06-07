@@ -33,5 +33,13 @@ devices, la lista 48 mantiene i processi bloccati a causa di una
 Quando il processo corrente viene spostato in altre code o viene ucciso viene
 settato a `NULL` per evitare di inserire lo stesso processo in più code diverse
 o più volte, questo comporta che quando si chiama lo scheduler e si deve andare
-nello stato di `HALT` l'ssi se ha finito il suo lavoro si troverà nella coda
+nello stato di `HALT` la ssi se ha finito il suo lavoro si troverà nella coda
 dei processi bloccati in attesa di un messaggio. 
+
+#### Gestione risposte DOIO da SSI
+
+Per inviare il risultato di una DOIO la ssi delega il compito di mandare la
+risposta al PCB al gestore degli interrupts in modo da mandare un messaggio
+in meno. Per mandare il messaggio il si emula una SENDMESSAGE con
+`msg->m_sender = ssi_pcb;` in modo che per il ricevente il messaggio venga dalla
+ssi.
