@@ -44,7 +44,7 @@ void interruptHandler(){
     }
 }
 
-/*+
+/*
 handle interrupts all the devices
 
 when a device finish a operation instead of sending the status to the SSI, 

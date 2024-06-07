@@ -16,6 +16,7 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 
 #include "../phase1/headers/msg.h"
 #include "../phase1/headers/pcb.h"
+#include <umps3/umps/types.h>
 
 extern void test();
 
@@ -26,7 +27,7 @@ pcb_t* current_process;
 struct list_head blocked_pcbs[BLOCKED_QUEUE_NUM]; // last one is for the Pseudo-clock
 
 
-passupvector_t* passupvector = PASSUPVECTOR;
+passupvector_t* passupvector = (passupvector_t*)PASSUPVECTOR;
 
 unsigned int lastpid = 1;
 

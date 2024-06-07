@@ -1,5 +1,4 @@
 *.o
-./phase1/*.o 
 kernel 
 kernel.*.umps
 term0.umps

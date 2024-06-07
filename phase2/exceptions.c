@@ -56,7 +56,7 @@ time saved when entering exception,
 time used in sycall is counted, 
 tracking of time spent in excHandler
 */
-cpu_t interrupt_enter_time
+cpu_t interrupt_enter_time;
 
 void exceptionHandler() {
     STCK(interrupt_enter_time);
