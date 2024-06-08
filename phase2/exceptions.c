@@ -109,7 +109,7 @@ void systemcallHandler(state_t* exceptionState) {
                 break;
             }
             if (isInPcbFree_h(dest_process->p_pid)) {
-                //il processo di destinazione è nella lista pcbFree_h => non puo ricevere mex
+                //il dest process è nella lista pcbFree_h => non puo ricevere mex
                 exceptionState->reg_v0 = DEST_NOT_EXIST;  
                 break;   
             }
