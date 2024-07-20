@@ -1,5 +1,7 @@
 *.o
 kernel 
 kernel.*.umps
+*Test*.umps
+fib*.umps
 term0.umps
 .vscode/
