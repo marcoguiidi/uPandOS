@@ -7,6 +7,7 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include "../headers/const.h"
 #include "./headers/initProc.h"
 #include "./headers/misc.h"
+#include "headers/vmSupport.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/types.h>
 
@@ -40,6 +41,8 @@ void swap_mutex_function(void) {
 }
 
 void test(void) {
+
+    // start the swap_mutex process
     state_t swap_mutex_state;
     STST(&swap_mutex_state);
     swap_mutex_state.reg_sp = swap_mutex_state.reg_sp - QPAGE; // ? QPAGE
@@ -47,4 +50,7 @@ void test(void) {
     swap_mutex_state.status |= IEPBITON | CAUSEINTMASK | TEBITON;
     
     swap_mutex = create_process(&swap_mutex_state);
+
+    // init swap struct
+    initSwapStruct();
 }

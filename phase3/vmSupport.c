@@ -17,6 +17,8 @@ exceptions.c file.
 #include "./headers/misc.h"
 #include "../phase2/headers/exceptions.h"
 #include "headers/initProc.h"
+#include <umps3/umps/const.h>
+#include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 
 swap_t swap_pool[POOLSIZE];
@@ -27,7 +29,22 @@ void initSwapStruct(void) {
     }
 }
 
+// 5.4
+unsigned int pageReplacementAlgorithm(void) {
+    static unsigned int index = 0; // static variable inside a function keeps its value between invocations
+    
+    index = (index + 1) % POOLSIZE;
+    return index;
+}
+
+int isSwapPoolFrameOccupied(unsigned int framenum) {
+    if (swap_pool[framenum].sw_asid != NOPROC) return TRUE;
+    else return FALSE;
+}
+
 void pager(void) {
+    unsigned int saved_status;
+
     // 1 get support data
     support_t* support_data = get_support_data();
 
@@ -39,4 +56,33 @@ void pager(void) {
 
     // 4
     gainSwap();
+
+    // 5 Determine the missing page number (p)
+    unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
+
+    // 6 pick a frame i from the swap pool..
+    unsigned int frame_victim_num = pageReplacementAlgorithm();
+
+    // 7 determine if frame i is occupied
+    if (isSwapPoolFrameOccupied(frame_victim_num)) {
+        // 8
+        // ATOMIC start
+        saved_status = getSTATUS();
+        setSTATUS(saved_status & ~IECON); // disable interrupts
+
+        int belogns_to_ASID = swap_pool[frame_victim_num].sw_asid;
+
+        // (a)
+        swap_pool[frame_victim_num].sw_pte->pte_entryLO &= !VALIDON;
+
+        // (b)
+        TLBCLR(); // TODO: 5.2 update tlb when all debugged
+
+        // (d)
+
+        // TODO: contunua da qui
+
+        setSTATUS(saved_status);
+        // ATOMIC end
+    }
 }
