@@ -8,6 +8,7 @@ ssi.c This module implements the System Service Interface process.
 #include "headers/interrupts.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/arch.h>
 #include "../klog.h"
 
 void SSI_function_entry_point() {
@@ -23,6 +24,12 @@ void SSI_function_entry_point() {
 
 const unsigned int *term0print = (unsigned int *)(0x10000254) + 3;
 
+#define DISK_DEVICES_START      = IRT_ENTRY(3, 0)
+#define FLASH_DEVICES_START     = IRT_ENTRY(4, 0)
+#define ETHERNET_DEVICES_START  = IRT_ENTRY(5, 0)
+#define PRINTER_DEVICES_START   = IRT_ENTRY(6, 0)
+#define TERMINAL_DEVICES_START  = IRT_ENTRY(6, 0)
+
 void SSIRequest(pcb_t* sender, int service, void* arg) {
     switch (service) {
         case CREATEPROCESS:
@@ -30,14 +37,14 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ssi_create_process_t* data = (ssi_create_process_t*)arg;
             pcb_t* newprocess = allocPcb();
             if (newprocess == NULL) { // no more free pcb
-                SYSCALL(SENDMESSAGE, sender, NOPROC, 0);
+                SYSCALL(SENDMESSAGE, (unsigned int)sender, NOPROC, 0);
             } else {
                 copy_state_t(data->state, &newprocess->p_s);
                 newprocess->p_supportStruct = data->support;
                 newprocess->p_time = 0;
                 insertChild(sender, newprocess); // make a child of sender
                 process_spawn(newprocess); // add to the ready queue
-                SYSCALL(SENDMESSAGE, sender, newprocess, 0); // return new process
+                SYSCALL(SENDMESSAGE, (unsigned int)sender, (unsigned int)newprocess, 0); // return new process
             }
             break;
         case TERMPROCESS:
@@ -46,7 +53,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             } else {
                 pcb_t* processtokill = (pcb_t*)arg;
                 process_killall(processtokill);
-                SYSCALL(SENDMESSAGE, sender, 0, 0); // response
+                SYSCALL(SENDMESSAGE, (unsigned int)sender, 0, 0); // response
             }
             
             break;
@@ -77,7 +84,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
         case GETTIME:
             ;
             cpu_t time = sender->p_time;
-            SYSCALL(SENDMESSAGE, sender, time, 0);
+            SYSCALL(SENDMESSAGE, (unsigned int)sender, time, 0);
             break;
         case CLOCKWAIT:
             ;
@@ -89,18 +96,17 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
         case GETSUPPORTPTR:
             ;
             support_t* supportdata = sender->p_supportStruct;
-            SYSCALL(SENDMESSAGE, sender, supportdata, 0);
+            SYSCALL(SENDMESSAGE, (unsigned int)sender, (unsigned int)supportdata, 0);
             break;
         case GETPROCESSID:
             ;
-            int arg_getprocessid = (int)arg;
             unsigned int pid;
             if (arg == 0) {
                 pid = sender->p_pid;
             } else {
                 pid = sender->p_parent->p_pid;
             }
-            SYSCALL(SENDMESSAGE, sender, pid, 0);
+            SYSCALL(SENDMESSAGE, (unsigned int)sender, pid, 0);
             break;
         default:
             /*

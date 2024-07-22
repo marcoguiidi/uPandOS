@@ -51,26 +51,25 @@ when a device finish a operation instead of sending the status to the SSI,
 emulate a SENDMESSAGE call to the waiting pcb and set the sender to ssi_pcb
 */
 void nonTimerInterrupt(int line){
-    unsigned int cause = getCAUSE();
     unsigned int devnum;
     unsigned int* installed_device_map;
     
     // get installed device bitmap for a given line
     switch (line) {
         case 3:
-            installed_device_map = 0x1000002c;
+            installed_device_map = (unsigned int*)0x1000002c;
             break;
         case 4:
-            installed_device_map = 0x1000002c + 0x04;
+            installed_device_map = (unsigned int*)(0x1000002c + 0x04);
             break;
         case 5:
-            installed_device_map = 0x1000002c + 0x08;
+            installed_device_map = (unsigned int*)(0x1000002c + 0x08);
             break;
         case 6:
-            installed_device_map = 0x1000002c + 0x0c;
+            installed_device_map = (unsigned int*)(0x1000002c + 0x0c);
             break;
         case 7:
-            installed_device_map = 0x1000002c + 0x10;
+            installed_device_map = (unsigned int*)(0x1000002c + 0x10);
             break;
         default:
             KLOG_PANIC("line don't match");
