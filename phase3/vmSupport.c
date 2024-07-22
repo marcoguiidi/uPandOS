@@ -20,6 +20,7 @@ exceptions.c file.
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
+#include <umps3/umps/arch.h>
 
 swap_t swap_pool[POOLSIZE];
 
@@ -42,6 +43,60 @@ int isSwapPoolFrameOccupied(unsigned int framenum) {
     else return FALSE;
 }
 
+unsigned int flashDevWrite(memaddr* write_address, memaddr* flash_dev_address) {
+    unsigned int command = (unsigned int)(write_address << 7) | FLASHWRITE;
+    unsigned status = 0;
+    ssi_do_io_t do_io = {
+        .commandAddr = flash_dev_address,
+        .commandValue = command,
+    };
+    ssi_payload_t payload = {
+        .service_code = DOIO,
+        .arg = &do_io,
+    };
+
+    SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
+    SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
+    return status;
+}
+
+unsigned int writeFrameToFlashDev(unsigned int frame_number, memaddr *dest_address) {
+    // calculate right flash dev
+    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, swap_pool[frame_number].sw_asid));
+    
+    // load start ram address to write in flash
+    devreg_t* devReg =  (devreg_t*)dev_addr;
+    devReg->dtp.data0 = swap_pool[frame_number].sw_pageNo * PAGESIZE; // ?? bho
+    return flashDevWrite(dest_address, dev_addr);
+}
+
+unsigned int flashDevRead(memaddr *read_address, memaddr *flash_dev_address) {
+    unsigned int status = 0;
+    unsigned int value = (unsigned int)(read_address << 7) | FLASHREAD;
+
+  ssi_do_io_t do_io = {
+      .commandAddr = flash_dev_address,
+      .commandValue = value,
+  };
+  ssi_payload_t payload = {
+      .service_code = DOIO,
+      .arg = &do_io,
+  };
+  SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
+  SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
+  return status;
+}
+
+unsigned readFrameToFlashDev(memaddr *missing_page_address, pteEntry_t *page) {
+    // calculate right flash dev
+    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, (page->pte_entryHI >> ASIDSHIFT) & 7));
+    
+    // load start ram address to write to flash
+    devreg_t* devReg =  (devreg_t*)dev_addr;
+    devReg->dtp.data0 = ((page->pte_entryHI & GETPAGENO) >> VPNSHIFT) * PAGESIZE; // ?? bho
+    return flashDevWrite(missing_page_address, dev_addr);
+}
+
 void pager(void) {
     unsigned int saved_status;
 
@@ -62,6 +117,8 @@ void pager(void) {
 
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
+    memaddr* swap_pool_start = (memaddr*)0x20020000;
+    memaddr* frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
@@ -79,10 +136,20 @@ void pager(void) {
         TLBCLR(); // TODO: 5.2 update tlb when all debugged
 
         // (d)
-
-        // TODO: contunua da qui
-
-        setSTATUS(saved_status);
-        // ATOMIC end
+        unsigned int write_status = writeFrameToFlashDev(frame_victim_num, frame_victim_address);
+        if (write_status != 3 && write_status != 1) { // if is not ready or busy
+            // trap
+            TrapExceptionHandler(write_status); // ??
+        }
     }
+
+    // 9
+    unsigned int read_status = readFrameToFlashDev(frame_victim_address, &support_data->sup_privatePgTbl[missing_page_num]);
+    if (read_status != 3 && read_status != 1) { // if is not ready or busy
+        // trap
+        TrapExceptionHandler(read_status); // ??
+    }
+
+    setSTATUS(saved_status);
+    // ATOMIC end
 }
