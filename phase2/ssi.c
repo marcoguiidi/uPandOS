@@ -24,11 +24,13 @@ void SSI_function_entry_point() {
 
 const unsigned int *term0print = (unsigned int *)(0x10000254) + 3;
 
-#define DISK_DEVICES_START      = IRT_ENTRY(3, 0)
-#define FLASH_DEVICES_START     = IRT_ENTRY(4, 0)
-#define ETHERNET_DEVICES_START  = IRT_ENTRY(5, 0)
-#define PRINTER_DEVICES_START   = IRT_ENTRY(6, 0)
-#define TERMINAL_DEVICES_START  = IRT_ENTRY(6, 0)
+#define DISK_DEVICES_START       DEV_REG_ADDR(3, 0)
+#define FLASH_DEVICES_START      DEV_REG_ADDR(4, 0)
+#define ETHERNET_DEVICES_START   DEV_REG_ADDR(5, 0)
+#define PRINTER_DEVICES_START    DEV_REG_ADDR(6, 0)
+#define TERMINAL_DEVICES_START   DEV_REG_ADDR(7, 0)
+
+unsigned int a = TERMINAL_DEVICES_START;
 
 void SSIRequest(pcb_t* sender, int service, void* arg) {
     switch (service) {
