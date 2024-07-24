@@ -11,13 +11,24 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 #include "../phase1/headers/msg.h"
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 #include "../klog.h"
 
 void uTLB_RefillHandler() {
-    setENTRYHI(0x80000000);
-    setENTRYLO(0x00000000);
+    // 1 determine the page number of the missing TLB entry
+    state_t* exception_state = (state_t*)BIOSDATAPAGE;
+    unsigned int missing_logical_page_number = exception_state->entry_hi >> VPNSHIFT;
+
+    // 2 get the page table entry for page number for the current process
+    pteEntry_t* missing_tlb_entry = &current_process->p_supportStruct->sup_privatePgTbl[missing_logical_page_number];
+
+    // 3 write the page table entry into the TLB
+    setENTRYHI(missing_tlb_entry->pte_entryHI);
+    setENTRYLO(missing_tlb_entry->pte_entryLO);
     TLBWR();
-    LDST((state_t*) 0x0FFFF000);
+
+    // 4 return control to the current process
+    LDST(&current_process->p_s);
 }
 
 
