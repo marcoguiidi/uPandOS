@@ -22,15 +22,33 @@ void SSI_function_entry_point() {
     }
 }
 
-const unsigned int *term0print = (unsigned int *)(0x10000254) + 3;
+int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno, int* regno) {
+    int retstatus = 0;
+    memaddr* base = 0;
+    if (devaddr >= TERMINAL_DEVICES_START) {
+        base = TERMINAL_DEVICES_START;
+        *lineno = 7;
+    } else if (devaddr >= PRINTER_DEVICES_START) {
+        base = PRINTER_DEVICES_START;
+        *lineno = 6;
+    } else if (devaddr >= ETHERNET_DEVICES_START) {
+        base = ETHERNET_DEVICES_START;
+        *lineno = 5;
+    } else if (devaddr >= FLASH_DEVICES_START) {
+        base = FLASH_DEVICES_START;
+        *lineno = 4;
+    } else if (devaddr >= DISK_DEVICES_START) {
+        base = DISK_DEVICES_START;
+        *lineno = 3;
+    } else {
+        retstatus = -1;
+    }
 
-#define DISK_DEVICES_START       DEV_REG_ADDR(3, 0)
-#define FLASH_DEVICES_START      DEV_REG_ADDR(4, 0)
-#define ETHERNET_DEVICES_START   DEV_REG_ADDR(5, 0)
-#define PRINTER_DEVICES_START    DEV_REG_ADDR(6, 0)
-#define TERMINAL_DEVICES_START   DEV_REG_ADDR(7, 0)
+    *devno = (devaddr - base) / 16;
+    *regno = (devaddr - base) % 16;
 
-unsigned int a = TERMINAL_DEVICES_START;
+    return retstatus;
+}
 
 void SSIRequest(pcb_t* sender, int service, void* arg) {
     switch (service) {
@@ -64,14 +82,10 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
 
             
-            int devno;
-            int intlineno;
-            // match konwn devices
-            if (doioarg->commandAddr == term0print) {
-                devno = 0;
-                intlineno = 7;
-            } else {
-                KLOG_PANIC("device not konwn")
+            int intlineno, devno, regno;
+            int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno, &regno);
+            if (ret != 0) {
+                KLOG_PANIC("device not known")
             }
             
             pcb_t* suspended_process = out_pcb_in_all(sender);

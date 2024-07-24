@@ -37,11 +37,11 @@ kernel.core.umps : kernel
 
 #kernel : ./phase1/p1test.o ./phase1/msg.o ./phase1/pcb.o crtso.o libumps.o
 #	$(LD) -o $@ $^ $(LDFLAGS)
-kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o ./klog.o crtso.o libumps.o
-	$(LD) -o $@ $^ $(LDFLAGS)
-
-#kernel : ./phase1/msg.o ./phase1/pcb.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/scheduler.o ./phase2/nucleus.o ./phase3/sst.o ./phase3/vmSupport.o ./phase3/initProc.o ./phase3/sysSupport.o crtso.o liburiscv.o
+#kernel : ./phase2/initial.o ./phase2/misc.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/p2test.o ./phase2/scheduler.o ./phase2/ssi.o ./phase1/msg.o ./phase1/pcb.o ./klog.o crtso.o libumps.o
 #	$(LD) -o $@ $^ $(LDFLAGS)
+
+kernel : ./phase1/msg.o ./phase1/pcb.o ./phase2/ssi.o ./phase2/exceptions.o ./phase2/interrupts.o ./phase2/scheduler.o ./phase2/nucleus.o ./phase3/sst.o ./phase3/vmSupport.o ./phase3/initProc.o ./phase3/sysSupport.o crtso.o liburiscv.o
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 clean :
 	rm -f ./phase2/*.o ./phase1/*.o ./phase3/*.o kernel kernel.*.uriscv

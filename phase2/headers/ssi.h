@@ -27,4 +27,12 @@ while (TRUE) {
 */
 void SSIRequest(pcb_t* sender, int service, void* arg);
 
+#define DISK_DEVICES_START       (memaddr*)DEV_REG_ADDR(3, 0)
+#define FLASH_DEVICES_START      (memaddr*)DEV_REG_ADDR(4, 0)
+#define ETHERNET_DEVICES_START   (memaddr*)DEV_REG_ADDR(5, 0)
+#define PRINTER_DEVICES_START    (memaddr*)DEV_REG_ADDR(6, 0)
+#define TERMINAL_DEVICES_START   (memaddr*)DEV_REG_ADDR(7, 0)
+
+int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno, int* regno);
+
 #endif

@@ -52,31 +52,31 @@ emulate a SENDMESSAGE call to the waiting pcb and set the sender to ssi_pcb
 */
 void nonTimerInterrupt(int line){
     unsigned int devnum;
-    unsigned int* installed_device_map;
+    unsigned int* interrupting_device_bit_map;
     
     // get installed device bitmap for a given line
     switch (line) {
         case 3:
-            installed_device_map = (unsigned int*)0x1000002c;
+            interrupting_device_bit_map = (unsigned int*)0x10000040;
             break;
         case 4:
-            installed_device_map = (unsigned int*)(0x1000002c + 0x04);
+            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x04);
             break;
         case 5:
-            installed_device_map = (unsigned int*)(0x1000002c + 0x08);
+            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x08);
             break;
         case 6:
-            installed_device_map = (unsigned int*)(0x1000002c + 0x0c);
+            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x0c);
             break;
         case 7:
-            installed_device_map = (unsigned int*)(0x1000002c + 0x10);
+            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x10);
             break;
         default:
             KLOG_PANIC("line don't match");
     }
 
     // get the first installed device for that line
-    switch (*installed_device_map) {
+    switch (*interrupting_device_bit_map) {
         case DEV0ON:
             devnum = 0;
             break;
@@ -102,14 +102,14 @@ void nonTimerInterrupt(int line){
             devnum = 7;
             break;
         default:
-            KLOG_PANIC("installed_device_map don't match");
+            KLOG_PANIC("interrupting_device_bit_map don't match");
             break;
     }
     
     /*
     * 1 calculate the address for this device's device register
     */
-    unsigned int devAddrBase = 0x10000054 + ((line - 3) * 0x80) + (devnum * 0x10);
+    unsigned int devAddrBase = DEV_REG_ADDR(line, devnum);
     unsigned int statusCodeRaw;
     devreg_t* devReg =  (devreg_t*)devAddrBase;
     // use a given device accordingly for his type
@@ -126,34 +126,32 @@ void nonTimerInterrupt(int line){
     switch (line) {
         case 3:
             // disk device
-            ;
-            statusCodeRaw = devReg->dtp.status; 
-            devReg->dtp.command = ACK;
+            KLOG_PANIC("disk devices not supported")
             break;
         case 4:
             // flash device
-            ;
-            statusCodeRaw = devReg->dtp.status; 
+            statusCodeRaw = devReg->dtp.status;
             devReg->dtp.command = ACK;
             break;
         case 5:
             // network device
-            ;
-            statusCodeRaw = devReg->dtp.status; 
-            devReg->dtp.command = ACK;
+            KLOG_PANIC("network devices not supported")
             break;
         case 6:
             // printer device
-            ;
-            statusCodeRaw = devReg->dtp.status; 
+            statusCodeRaw = devReg->dtp.status;
             devReg->dtp.command = ACK;
             break;
         case 7:
             // terminal device
-            ;
-            devreg_t* devReg =  (devreg_t*)devAddrBase;
-            statusCodeRaw = devReg->term.transm_status; 
-            devReg->term.transm_command = ACK; 
+            // see what subdevices need ack 
+            if (devReg->term.transm_status != 1) {
+                statusCodeRaw = devReg->term.transm_status;
+                devReg->term.transm_command = ACK;
+            } else {
+                statusCodeRaw = devReg->term.recv_status;
+                devReg->term.recv_command = ACK;
+            }
             break;
         default:
             KLOG_PANIC("line don't match");
