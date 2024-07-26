@@ -9,6 +9,7 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include "./headers/misc.h"
 #include "headers/vmSupport.h"
 #include <umps3/umps/const.h>
+#include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 
 pcb_PTR swap_mutex;
@@ -40,6 +41,8 @@ void swap_mutex_function(void) {
     }
 }
 
+pcb_PTR test_pcb;
+
 void test(void) {
 
     // start the swap_mutex process
@@ -53,4 +56,13 @@ void test(void) {
 
     // init swap struct
     initSwapStruct();
+
+    // wait for termination of all SST
+    ssi_payload_t* payload;
+    pcb_t* sender;
+    for (int i = 0; i < 8; i++) {
+        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+    }
+    // work is finished
+    kill_process(SELF);
 }

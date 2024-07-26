@@ -39,3 +39,15 @@ pcb_t *create_process(state_t *s)
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p), 0);
     return p;
 }
+
+#define SELF (pcb_t*)NULL
+pcb_t* kill_process(pcb_t* process) {
+    pcb_t *p;
+    ssi_payload_t payload = {
+        .service_code = TERMPROCESS,
+        .arg = process,
+    };
+    SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)&payload, 0);
+    SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p), 0);
+    return p;
+}
