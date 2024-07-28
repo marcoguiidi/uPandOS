@@ -8,13 +8,12 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include "./headers/initProc.h"
 #include "./headers/sst.h"
 #include "./headers/misc.h"
+#include "headers/sysSupport.h"
 #include "headers/vmSupport.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
-
-pcb_PTR swap_mutex;
 
 // gain mutual exclusion over the swap pool
 void gainSwap(void) {
@@ -47,6 +46,9 @@ state_t   state_t_pool[8];
 state_t   state_t_sst_pool[8];
 support_t support_t_pool[8];
 
+pcb_PTR swap_mutex;
+pcb_PTR    sst_pcb[8];
+
 state_t state_t_swap_mutex;
 
 void uproc_init(int asid) {
@@ -73,8 +75,8 @@ void uproc_init(int asid) {
     //Set the two PC fields. One of them (0 - PGFAULTEXCEPT) should be set to the address of the
     //Support Level’s TLB handler, while the other one (1 - GENERALEXCEPT) should be set to the
     //address of the Support Level’s general exception handler.
-    support->sup_exceptContext[0].pc = PGFAULTEXCEPT;
-    support->sup_exceptContext[1].pc = GENERALEXCEPT;
+    support->sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)pager;
+    support->sup_exceptContext[GENERALEXCEPT].pc = (memaddr)support_general_exception_handler;
     //Set the two Status registers to: kernel-mode with all interrupts and the Processor Local Timer enabled.
     support->sup_exceptContext[0].status = 0b00 | 0b1 | IMON | TEBITON;
     //                               kernel mode| global interrupt enable bit
@@ -154,7 +156,7 @@ void test(void) {
         // setup sst state
         
         // support is same as u-proc
-        create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);
+        sst_pcb[asid] = create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);
     }
 
 
