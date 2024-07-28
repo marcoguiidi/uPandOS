@@ -24,12 +24,11 @@ support_t* get_support_data(void) {
     return support_data;
 }
 
-pcb_t *create_process(state_t *s)
-{
+pcb_t *create_process(state_t* state, support_t* support) {
     pcb_t *p;
     ssi_create_process_t ssi_create_process = {
-        .state = s,
-        .support = NULL, // ?
+        .state = state,
+        .support = support,
     };
     ssi_payload_t payload = {
         .service_code = CREATEPROCESS,

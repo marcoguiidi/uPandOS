@@ -117,6 +117,13 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
 }
 
 void SST_function_entry_point() {
+    //child u-proc start and initialization
+    // support data is the same
+    support_t* support = get_support_data();
+    int asid = support->sup_asid;
+    create_process(&state_t_pool[asid], &support_t_pool[asid]);
+
+    // manage requests
     ssi_payload_t* payload;
     pcb_t* sender;
     while (TRUE) {

@@ -6,11 +6,13 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include "../headers/types.h"
 #include "../headers/const.h"
 #include "./headers/initProc.h"
+#include "./headers/sst.h"
 #include "./headers/misc.h"
 #include "headers/vmSupport.h"
 #include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
+#include <umps3/umps/arch.h>
 
 pcb_PTR swap_mutex;
 
@@ -41,6 +43,60 @@ void swap_mutex_function(void) {
     }
 }
 
+state_t   state_t_pool[8];
+state_t   state_t_sst_pool[8];
+support_t support_t_pool[8];
+
+void uproc_init(int asid) {
+    // initializing u-proc
+    // initial processor state for u-proc
+    state_t* state = &state_t_pool[asid];
+    STST(state);
+    // pc and s_t9 set to  0x800000B0
+    state->pc_epc = 0x800000B0;
+    state->reg_t9 = 0x800000B0;
+    // sp set to 0xC0000000
+    state->reg_sp = 0xC0000000;
+    // status set for user mode with all interrupts and the plt enabled
+    state->status = 0b10 | 0b1 | IMON | TEBITON;
+    //         user mode| global interrupt enable bit
+    // enstryhi.asid to the process's unique id
+    state->entry_hi = asid << ASIDSHIFT;
+
+    //ititialization of a support structure
+    support_t* support = &support_t_pool[asid];
+    // setup sup_asid to the process asid
+    support->sup_asid = asid;
+    // setup sup_exceptContext[2]
+    //Set the two PC fields. One of them (0 - PGFAULTEXCEPT) should be set to the address of the
+    //Support Level’s TLB handler, while the other one (1 - GENERALEXCEPT) should be set to the
+    //address of the Support Level’s general exception handler.
+    support->sup_exceptContext[0].pc = PGFAULTEXCEPT;
+    support->sup_exceptContext[1].pc = GENERALEXCEPT;
+    //Set the two Status registers to: kernel-mode with all interrupts and the Processor Local Timer enabled.
+    support->sup_exceptContext[0].status = 0b00 | 0b1 | IMON | TEBITON;
+    //                               kernel mode| global interrupt enable bit
+    support->sup_exceptContext[1].status = 0b00 | 0b1 | IMON | TEBITON;
+    //                               kernel mode| global interrupt enable bit
+    //Set the two SP fields to utilize the two stack spaces allocated in the Support Structure. Stacks
+    //grow “down” so set the SP fields to the address of the end of these areas.
+    //E.g. ... = &(...sup_stackGen[499]).
+    
+    //Allocate per-U-proc TLB, and general exception handler stacks directly from RAM [Section
+    //10.1].
+    //Directly allocate the two stack spaces per U-proc (one for the Support Level’s TLB exception
+    //handler, and one for the Support Level’s general exception handler) from RAM, instead of as
+    //fields in the Support Structure. The recommended RAM space to be used are the frames directly
+    //below RAMTOP, avoid the actual last frame of RAM (stack page for test).
+    //Important: SP values are always the end of the area, not the start. Hence, to use the penul-
+    //timate RAM frame as a U-proc’s stack space for one of its Support Level handlers, one would
+    //assign the SP value to RAMTOP-PAGESIZE.
+    unsigned int ramtop;
+    RAMTOP(ramtop);
+    support->sup_exceptContext[0].stackPtr = ramtop - PAGESIZE;
+    support->sup_exceptContext[1].stackPtr = ramtop - PAGESIZE;
+}
+
 pcb_PTR test_pcb;
 
 void test(void) {
@@ -52,15 +108,40 @@ void test(void) {
     swap_mutex_state.pc_epc = (memaddr)swap_mutex_function;
     swap_mutex_state.status |= IEPBITON | CAUSEINTMASK | TEBITON;
     
-    swap_mutex = create_process(&swap_mutex_state);
+    swap_mutex = create_process(&swap_mutex_state, NULL); // ?
 
     // init swap struct
     initSwapStruct();
 
+    // init u-proc support and state
+    for (int asid = 0; asid < UPROCMAX; asid++) {
+        uproc_init(asid);
+    }
+
+    // launch 8 sst with corrisponding u-procs
+    for (int asid = 0; asid < UPROCMAX; asid++) {
+        // setup sst state
+        state_t* state = &state_t_sst_pool[asid];
+        STST(state);
+        // pc and s_t9 set to  SST_function_entry_point
+        state->pc_epc = (memaddr)SST_function_entry_point;
+        state->reg_t9 = (memaddr)SST_function_entry_point;
+        // sp set to 0xC0000000
+        state->reg_sp = 0xC0000000;
+        // status set for user mode with all interrupts and the plt enabled
+        state->status = 0b10 | 0b1 | IMON | TEBITON;
+        //         user mode| global interrupt enable bit
+        // enstryhi.asid to the process's unique id
+        state->entry_hi = asid << ASIDSHIFT;
+        // support is same as u-proc
+        create_process(state, &support_t_pool[asid]); // ??
+    }
+
+
     // wait for termination of all SST
     ssi_payload_t* payload;
     pcb_t* sender;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < UPROCMAX; i++) {
         sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
     }
     // work is finished
