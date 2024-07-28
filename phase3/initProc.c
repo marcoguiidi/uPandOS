@@ -47,6 +47,8 @@ state_t   state_t_pool[8];
 state_t   state_t_sst_pool[8];
 support_t support_t_pool[8];
 
+state_t state_t_swap_mutex;
+
 void uproc_init(int asid) {
     // initializing u-proc
     // initial processor state for u-proc
@@ -97,18 +99,47 @@ void uproc_init(int asid) {
     support->sup_exceptContext[1].stackPtr = ramtop - PAGESIZE;
 }
 
+/*
+sp for swap mutex is one page next kernel (kerenelstack - QPAGE )
+so
+sp for sst_0 is (swap_mutex_stack - QPAGE) = kernelstack - 2*QPAGE
+sp for sst_n = kernelstack - (2+n)*QPAGE
+*/
+
+void sst_state_init(void) {
+    for (int asid = 0; asid < UPROCMAX; asid++) {
+        state_t* state = &state_t_sst_pool[asid];
+        STST(state);
+        // pc and s_t9 set to  SST_function_entry_point
+        state->pc_epc = (memaddr)SST_function_entry_point;
+        state->reg_t9 = (memaddr)SST_function_entry_point;
+        // sp set to kernelstack - (2+n)*QPAGE
+        state->reg_sp = KERNELSTACK - (2+asid)*QPAGE;
+        // status set for kernel mode with all interrupts and the plt enabled
+        state->status = 0b00 | 0b1 | IMON | TEBITON;
+        //         kernel mode| global interrupt enable bit
+        // enstryhi.asid to the process's unique id
+        state->entry_hi = asid << ASIDSHIFT;
+    }
+}
+
 pcb_PTR test_pcb;
 
 void test(void) {
 
     // start the swap_mutex process
-    state_t swap_mutex_state;
-    STST(&swap_mutex_state);
-    swap_mutex_state.reg_sp = swap_mutex_state.reg_sp - QPAGE; // ? QPAGE
-    swap_mutex_state.pc_epc = (memaddr)swap_mutex_function;
-    swap_mutex_state.status |= IEPBITON | CAUSEINTMASK | TEBITON;
+    state_t* swap_mutex_state = &state_t_swap_mutex;
+    STST(swap_mutex_state);
+    // pc and s_t9 set to  swap_mutex_function
+    swap_mutex_state->pc_epc = (memaddr)swap_mutex_function;
+    swap_mutex_state->reg_t9 = (memaddr)swap_mutex_function;
+    // sp set to kernelstack - QPAGE
+    swap_mutex_state->reg_sp = KERNELSTACK - QPAGE;
+    // status set for kernel mode with all interrupts and the plt enabled
+    swap_mutex_state->status = 0b00 | 0b1 | IMON | TEBITON;
     
-    swap_mutex = create_process(&swap_mutex_state, NULL); // ?
+    // without support struct
+    swap_mutex = create_process(swap_mutex_state, NULL);
 
     // init swap struct
     initSwapStruct();
@@ -121,20 +152,9 @@ void test(void) {
     // launch 8 sst with corrisponding u-procs
     for (int asid = 0; asid < UPROCMAX; asid++) {
         // setup sst state
-        state_t* state = &state_t_sst_pool[asid];
-        STST(state);
-        // pc and s_t9 set to  SST_function_entry_point
-        state->pc_epc = (memaddr)SST_function_entry_point;
-        state->reg_t9 = (memaddr)SST_function_entry_point;
-        // sp set to 0xC0000000
-        state->reg_sp = 0xC0000000;
-        // status set for user mode with all interrupts and the plt enabled
-        state->status = 0b10 | 0b1 | IMON | TEBITON;
-        //         user mode| global interrupt enable bit
-        // enstryhi.asid to the process's unique id
-        state->entry_hi = asid << ASIDSHIFT;
+        
         // support is same as u-proc
-        create_process(state, &support_t_pool[asid]); // ??
+        create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);
     }
 
 
