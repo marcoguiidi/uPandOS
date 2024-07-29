@@ -3,6 +3,7 @@
 
 #include "../../headers/types.h"
 #include "../../headers/const.h"
+#include <umps3/umps/types.h>
 
 extern pcb_PTR swap_mutex;
 extern pcb_PTR test_pcb;

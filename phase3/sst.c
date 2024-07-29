@@ -14,6 +14,7 @@ sst.c: This module implements the System Service Thread:
 
 #include "headers/initProc.h"
 #include "headers/misc.h"
+#include "../phase2/headers/initial.h"
 
 int printer_write_string(int lenght, char* string, devreg_t* printer_base_addr) {
     int ret = 0; // no errors

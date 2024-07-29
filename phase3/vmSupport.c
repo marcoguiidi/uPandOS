@@ -21,10 +21,11 @@ exceptions.c file.
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
+#include "../klog.h"
 
 swap_t swap_pool[POOLSIZE];
 
-void initSwapStructs(void) {
+void initSwapStruct(void) {
     for (int i = 0; i < POOLSIZE; i++) {
         swap_pool[i].sw_asid = NOPROC;
     }
@@ -131,8 +132,6 @@ void pager(void) {
         saved_status = getSTATUS();
         setSTATUS(saved_status & ~IECON); // disable interrupts
 
-        int belogns_to_ASID = swap_pool[frame_victim_num].sw_asid;
-
         // (a)
         swap_pool[frame_victim_num].sw_pte->pte_entryLO &= !VALIDON;
 
@@ -143,7 +142,8 @@ void pager(void) {
         unsigned int write_status = writeFrameToFlashDev(frame_victim_num, frame_victim_address);
         if (write_status != 3 && write_status != 1) { // if is not ready or busy
             // trap
-            TrapExceptionHandler(write_status); // ??
+            //TrapExceptionHandler(write_status); // ??
+            KLOG_PANIC("flash write not succesful")
         }
     }
 
@@ -151,7 +151,8 @@ void pager(void) {
     unsigned int read_status = readFrameToFlashDev(frame_victim_address, &support_data->sup_privatePgTbl[missing_page_num]);
     if (read_status != 3 && read_status != 1) { // if is not ready or busy
         // trap
-        TrapExceptionHandler(read_status); // ??
+        //TrapExceptionHandler((unsigned int)read_status); // ??
+        KLOG_PANIC("flash read not succesful")
     }
 
     // 10 update swap pool page table

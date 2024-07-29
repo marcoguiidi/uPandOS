@@ -20,7 +20,7 @@ sysSupport.c: This module implements the Support Level’s:
 
 void support_syscall_exception_handler() {
     // get state register at time of syscall
-    state_t* exceptionState = current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
+    state_t* exceptionState = &current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
 
     // syscall type
     int reg_A0 = exceptionState->reg_a0;
@@ -121,11 +121,33 @@ void support_syscall_exception_handler() {
 }
 
 void support_trap_exception_handler() {
+    // send message to swap mutex
+    msg_PTR msg = allocMsg();
+    if (msg == NULL) {
+        KLOG_PANIC("msg all used");
+    }
 
+    if (current_process == NULL) {
+        KLOG_PANIC("current_process is NULL");
+    }
+
+    msg->m_payload = (unsigned int)0; // empty message
+    msg->m_sender = current_process;
+            
+    if (outProcQ(&blocked_pcbs[BLOKEDRECV], swap_mutex) != NULL) { // dest_process is blocked
+        // dest_process is waiting for a mex, unblock it
+        insertProcQ(&ready_queue, swap_mutex);
+        soft_block_count--;  // decrease the blocked processes counter, one is ready
+    }
+    // add new message to dest inbox
+    insertMessage(&swap_mutex->msg_inbox, msg);
+
+    // kill process
+    process_killall(current_process);
 }
 
 void support_general_exception_handler() {
-    state_t* state = current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
+    state_t* state = &current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
 
     if (ExcCode == SYSEXCEPTION) {

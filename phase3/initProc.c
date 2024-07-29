@@ -31,14 +31,13 @@ void releaseSwap(void) {
 #define CAUSEINTMASK 0xFD00
 
 void swap_mutex_function(void) {
-    void* payload;
     pcb_t* sender;
     while (TRUE) {
         // wait for a service request
         sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0); // gainSwap[0]
         SYSCALL(SENDMSG, (unsigned int)sender, 0, 0);               // gainSwap[1], give the swap a sender
 
-        (pcb_t*)SYSCALL(RECEIVEMESSAGE, sender, 0, 0); // now wait for sender to relseaseSwap
+        SYSCALL(RECEIVEMESSAGE, (unsigned int)sender, 0, 0); // now wait for sender to relseaseSwap
     }
 }
 
@@ -162,9 +161,8 @@ void test(void) {
 
     // wait for termination of all SST
     ssi_payload_t* payload;
-    pcb_t* sender;
     for (int i = 0; i < UPROCMAX; i++) {
-        sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+        SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
     }
     // work is finished
     kill_process(SELF);

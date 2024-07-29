@@ -18,7 +18,7 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 #include "../phase1/headers/pcb.h"
 #include <umps3/umps/types.h>
 
-extern void test();
+#include "../phase3/headers/initProc.h"
 
 int process_count = 0;
 int soft_block_count = 0;
@@ -123,7 +123,7 @@ int main(void) {
     test_pcb->p_s.status = ( STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
     RAMTOP(test_pcb->p_s.reg_sp); // FRAMESIZE è pagesize, sbagiate le specifiche
     test_pcb->p_s.reg_sp -= 2 * PAGESIZE; /*the SP set to RAMTOP - (2 * FRAMESIZE)*/
-    test_pcb->p_s.pc_epc = (memaddr) test;
+    test_pcb->p_s.pc_epc = (memaddr)test;
     test_pcb->p_s.reg_t9 = (memaddr) test;
     test_pcb->p_time = 0;
     test_pcb->p_supportStruct = NULL;
