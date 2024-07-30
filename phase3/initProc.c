@@ -14,6 +14,9 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
+#include "../klog.h"
+
+// swap mutex maybe not accessible
 
 // gain mutual exclusion over the swap pool
 void gainSwap(void) {
@@ -46,7 +49,7 @@ state_t   state_t_sst_pool[8];
 support_t support_t_pool[8];
 
 pcb_PTR swap_mutex;
-pcb_PTR    sst_pcb[8];
+pcb_PTR sst_pcb[8];
 
 state_t state_t_swap_mutex;
 
@@ -153,6 +156,7 @@ void test(void) {
     // launch 8 sst with corrisponding u-procs
     for (int asid = 0; asid < UPROCMAX; asid++) {
         // setup sst state
+        sst_state_init();
         
         // support is same as u-proc
         sst_pcb[asid] = create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);

@@ -18,95 +18,33 @@ sysSupport.c: This module implements the Support Level’s:
 #include <umps3/umps/cp0.h>
 #include "../klog.h"
 
-void support_syscall_exception_handler() {
+/*
+in virtual memory?
+current_process ?? maybey is not accessible
+*/
+
+void support_syscall_exception_handler(support_t* support) {
     // get state register at time of syscall
-    state_t* exceptionState = &current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
+    state_t* exceptionState = &support->sup_exceptState[GENERALEXCEPT];
 
     // syscall type
     int reg_A0 = exceptionState->reg_a0;
     // dest process
     unsigned int reg_A1 = exceptionState->reg_a1;
     // payload of the mex
-    int reg_A2 = exceptionState->reg_a2;
-
-    msg_t *msg;
+    unsigned int reg_A2 = exceptionState->reg_a2;
 
     switch (reg_A0) {
     //perform a multi-way branching depending on the type of exception
         case SENDMSG: {
-            
-            pcb_t* dest_process = (pcb_t*)reg_A1;
-            
-            //  If a1 contains PARENT, then the requesting process send the message to its SST [Section 6], that is its parent.
-            if (reg_A1 == PARENT) { 
-                dest_process = current_process->p_parent;
-                break;
+            if (reg_A1 == PARENT) {
+                reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
             }
-            if (isInPcbFree_h(dest_process->p_pid)) {
-                //il dest process è nella lista pcbFree_h => non puo ricevere mex
-                exceptionState->reg_v0 = DEST_NOT_EXIST;  
-                break;   
-            }
-            // alloco messaggio
-            msg = allocMsg();
-            if (msg == NULL) {
-                KLOG_PANIC("msg all used");
-                exceptionState->reg_v0 = MSGNOGOOD; // messaggi liberi esauriti
-                break;                
-            }
-
-            if (current_process == NULL) {
-                KLOG_PANIC("current_process is NULL");
-            }
-
-            msg->m_payload = (unsigned int)reg_A2;
-            msg->m_sender = current_process;
-            
-            if (outProcQ(&blocked_pcbs[BLOKEDRECV], dest_process) != NULL) { // dest_process is blocked
-                // dest_process is waiting for a mex, unblock it
-                insertProcQ(&ready_queue, dest_process);
-                soft_block_count--;  // decrease the blocked processes counter, one is ready
-            }
-            // add new message to dest inbox
-            insertMessage(&dest_process->msg_inbox, msg); 
-            exceptionState->reg_v0 = 0; // success
-
-            current_process->p_time -= get_elapsed_time_interupt(); 
-            //updated by subtracting the time elapsed during the interrupt
+            SYSCALL(SENDMESSAGE, reg_A1, reg_A2, 0);
             break;
         }
         case RECEIVEMSG: {
-            
-            pcb_t *sender_process = (pcb_PTR)reg_A1;
-            //extract mex from inbox
-            msg = popMessage(&current_process->msg_inbox, sender_process);
-            
-            // no message, wait
-            if (msg == NULL) {
-                // is running, put in waiting state
-                copy_state_t(exceptionState, &(current_process->p_s));
-                
-                // add time spent in syscall
-                current_process->p_time += get_elapsed_time();
-                insertProcQ(&blocked_pcbs[BLOKEDRECV], current_process);
-                soft_block_count++;
-
-                
-                // call the scheduler
-                current_process = NULL;
-                scheduler();
-            }
-
-            // return the payload
-            exceptionState->reg_v0 = (unsigned int)msg->m_sender;
-
-            if (reg_A2 != 0) {
-                // save payload of the mex if there is one
-                *((unsigned int*)reg_A2) = (unsigned int)msg->m_payload;
-            }
-
-            freeMsg(msg);
-            break;
+            SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
         }
         default:
             KLOG_PANIC("USYS code not found")
@@ -120,40 +58,84 @@ void support_syscall_exception_handler() {
     //restores processor state
 }
 
-void support_trap_exception_handler() {
+void debug_trap(unsigned int ExcCode) {
+    switch (ExcCode) {
+        case 0: {
+            KLOG_ERROR("External Device Interrupt")
+            break;
+        }
+        case 1: {
+            KLOG_ERROR("TLB-Modification Exception")
+            break;
+        }
+        case 2: {
+            KLOG_ERROR("TLB Invalid Exception: on a Load instr. or instruction fetch")
+            break;
+        }
+        case 3: {
+            KLOG_ERROR("TLB Invalid Exception: on a Store instr.")
+            break;
+        }
+        case 4: {
+            KLOG_ERROR("Address Error Exception: on a Load or instruction fetch")
+            break;
+        }
+        case 5: {
+            KLOG_ERROR("Address Error Exception: on a Store instr.")
+            break;
+        }
+        case 6: {
+            KLOG_ERROR("Bus Error Exception: on an instruction fetch")
+            break;
+        }
+        case 7: {
+            KLOG_ERROR("Bus Error Exception: on a Load/Store data access")
+            break;
+        }
+        case 8: {
+            KLOG_ERROR("Syscall Exception")
+            break;
+        }
+        case 9: {
+            KLOG_ERROR("Breakpoint Exception")
+            break;
+        }
+        case 10: {
+            KLOG_ERROR("Reserved Instruction Exception")
+            break;
+        }
+        case 11: {
+            KLOG_ERROR("Coprocessor Unusable Exception")
+            break;
+        }
+        case 12: {
+            KLOG_ERROR("Arithmetic Overflow Exception")
+            break;
+        }
+    }
+}
+
+void support_trap_exception_handler(support_t* support) {
+    // debug
+    state_t* state = &support->sup_exceptState[GENERALEXCEPT];
+    unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
+    debug_trap(ExcCode);
+    KLOG_PANIC("p k")
     // send message to swap mutex
-    msg_PTR msg = allocMsg();
-    if (msg == NULL) {
-        KLOG_PANIC("msg all used");
-    }
-
-    if (current_process == NULL) {
-        KLOG_PANIC("current_process is NULL");
-    }
-
-    msg->m_payload = (unsigned int)0; // empty message
-    msg->m_sender = current_process;
-            
-    if (outProcQ(&blocked_pcbs[BLOKEDRECV], swap_mutex) != NULL) { // dest_process is blocked
-        // dest_process is waiting for a mex, unblock it
-        insertProcQ(&ready_queue, swap_mutex);
-        soft_block_count--;  // decrease the blocked processes counter, one is ready
-    }
-    // add new message to dest inbox
-    insertMessage(&swap_mutex->msg_inbox, msg);
-
+    releaseSwap(); // ? swap mutex maybe not accesible
     // kill process
-    process_killall(current_process);
+    kill_process(SELF); // ?? self
 }
 
 void support_general_exception_handler() {
-    state_t* state = &current_process->p_supportStruct->sup_exceptState[GENERALEXCEPT];
+    support_t* support = get_support_data();
+    state_t* state = &support->sup_exceptState[GENERALEXCEPT];
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
 
     if (ExcCode == SYSEXCEPTION) {
-        support_syscall_exception_handler();
+        support_syscall_exception_handler(support);
     } else {
-        support_trap_exception_handler();
+        support_trap_exception_handler(support);
     }
 
 }
