@@ -45,8 +45,10 @@ void support_syscall_exception_handler(support_t* support) {
         }
         case RECEIVEMSG: {
             SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
+            break;
         }
         default:
+            klog_print_dec(reg_A0);
             KLOG_PANIC("USYS code not found")
             break;
     }

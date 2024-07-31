@@ -60,6 +60,7 @@ unsigned int vpn_to_flash_block(unsigned int vpn) {
     else if (vpn == 0xBFFFF) {
         return 31;
     } else {
+        klog_print_hex(vpn);
         KLOG_PANIC("translation error")
     }
     return -1;
@@ -132,26 +133,30 @@ void updateTLB(void) {
 
 void pager(void) {
     unsigned int saved_status;
-
+    
     // 1 get support data
     support_t* support_data = get_support_data();
-
+    
     // 2 determine the cause of the TLB exception
     state_t* exceptstate = &(support_data->sup_exceptState[PGFAULTEXCEPT]);
-
+    
     // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
     unsigned int ExcCode = CAUSE_GET_EXCCODE(exceptstate->cause) ;
-    if (ExcCode == TLBMOD) TrapExceptionHandler(exceptstate);
+    if (ExcCode == TLBMOD) {
+        KLOG_PANIC("not TLBMOD allowed")
+        TrapExceptionHandler(exceptstate);
+    }
 
     // 4 Gain mutual exclusion over the Swap Pool table
     gainSwap();
-
+    
     // 5 Determine the missing page number (p)
+    
     unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
-
+    
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
-
+    
     // swap pool ???
     memaddr swap_pool_start = (memaddr)0x20020000;
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);

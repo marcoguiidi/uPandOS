@@ -38,7 +38,7 @@ void swap_mutex_function(void) {
     while (TRUE) {
         // wait for a service request
         sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0); // gainSwap[0]
-        SYSCALL(SENDMSG, (unsigned int)sender, 0, 0);               // gainSwap[1], give the swap a sender
+        SYSCALL(SENDMESSAGE, (unsigned int)sender, 0, 0);               // gainSwap[1], give the swap a sender
 
         SYSCALL(RECEIVEMESSAGE, (unsigned int)sender, 0, 0); // now wait for sender to relseaseSwap
     }
