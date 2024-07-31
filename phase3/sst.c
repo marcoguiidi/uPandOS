@@ -79,6 +79,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             break;
         }
         case TERMINATE: {
+            klog_print(" [uproc terminated] ");
             // send a message to test process to tell that one SST is killed 
             SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
             // kill sst and so his child
@@ -122,7 +123,8 @@ void SST_function_entry_point() {
     // support data is the same
     support_t* support = get_support_data();
     int asid = support->sup_asid;
-    create_process(&state_t_pool[asid], &support_t_pool[asid]);
+    pcb_PTR uproc = create_process(&state_t_pool[asid], &support_t_pool[asid]);
+    uproc_pbc[asid] = uproc;
 
     // manage requests
     ssi_payload_t* payload;
@@ -130,7 +132,7 @@ void SST_function_entry_point() {
     while (TRUE) {
         // wait for a service request
         sender = (pcb_t*)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
-        
+
         SSTRequest(sender, payload->service_code, payload->arg);
     }
 }

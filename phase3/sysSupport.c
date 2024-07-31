@@ -58,6 +58,43 @@ void support_syscall_exception_handler(support_t* support) {
     //restores processor state
 }
 
+void debung_program_running(void) {
+    klog_print("is exec ");
+    if (current_process == NULL) {
+        klog_print("kernel or error\n");
+        return;
+    }
+    if (current_process == ssi_pcb) {
+        klog_print("ssi\n");
+        return;
+    }
+    if (current_process == test_pcb) {
+        klog_print("test\n");
+        return;
+    }
+    if (current_process == swap_mutex) {
+        klog_print("swap mutex\n");
+        return;
+    }
+    for (int i = 0; i < UPROCMAX; i++) {
+        if (current_process == sst_pcb[i]) {
+            klog_print("sst[");
+            klog_print_dec(i);
+            klog_print("]\n");
+            return;
+        }
+    }
+    for (int i = 0; i < UPROCMAX; i++) {
+        if (current_process == uproc_pbc[i]) {
+            klog_print("uproc[");
+            klog_print_dec(i);
+            klog_print("]\n");
+            return;
+        }
+    }
+    klog_print("unknown\n");
+}
+
 void debug_trap(unsigned int ExcCode) {
     switch (ExcCode) {
         case 0: {
@@ -119,6 +156,7 @@ void support_trap_exception_handler(support_t* support) {
     // debug
     state_t* state = &support->sup_exceptState[GENERALEXCEPT];
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
+    debung_program_running();
     debug_trap(ExcCode);
     KLOG_PANIC("p k")
     // send message to swap mutex

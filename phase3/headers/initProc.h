@@ -8,6 +8,7 @@
 extern pcb_PTR swap_mutex;
 extern pcb_PTR test_pcb;
 extern pcb_PTR    sst_pcb[8];
+extern pcb_PTR uproc_pbc[8];
 
 extern state_t   state_t_pool[8];
 extern support_t support_t_pool[8];

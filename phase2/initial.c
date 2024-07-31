@@ -124,7 +124,7 @@ int main(void) {
     RAMTOP(test_pcb->p_s.reg_sp); // FRAMESIZE è pagesize, sbagiate le specifiche
     test_pcb->p_s.reg_sp -= 2 * PAGESIZE; /*the SP set to RAMTOP - (2 * FRAMESIZE)*/
     test_pcb->p_s.pc_epc = (memaddr)test;
-    test_pcb->p_s.reg_t9 = (memaddr) test;
+    test_pcb->p_s.reg_t9 = (memaddr)test;
     test_pcb->p_time = 0;
     test_pcb->p_supportStruct = NULL;
 

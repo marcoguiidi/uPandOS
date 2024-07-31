@@ -50,6 +50,7 @@ support_t support_t_pool[8];
 
 pcb_PTR swap_mutex;
 pcb_PTR sst_pcb[8];
+pcb_PTR uproc_pbc[8];
 
 state_t state_t_swap_mutex;
 
@@ -73,6 +74,19 @@ void uproc_init(int asid) {
     support_t* support = &support_t_pool[asid];
     // setup sup_asid to the process asid
     support->sup_asid = asid;
+
+    // initialize u-proc page table
+    for (int i = 0; i < 31; i++) {
+        // VPN(31-12) ASID(11-6) empty(5-0)
+        support->sup_privatePgTbl[i].pte_entryHI = ((0x80000 + 0x1*i) << VPNSHIFT) | (asid << ASIDSHIFT);
+        // D on G off (aready set)  V off (already set)
+        support->sup_privatePgTbl[i].pte_entryLO = DIRTYON;
+    }
+    // VPN(31-12) ASID(11-6) empty(5-0)
+    support->sup_privatePgTbl[31].pte_entryHI = (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
+    // D on G off (aready set)  V off (already set)
+    support->sup_privatePgTbl[31].pte_entryLO = DIRTYON;
+
     // setup sup_exceptContext[2]
     //Set the two PC fields. One of them (0 - PGFAULTEXCEPT) should be set to the address of the
     //Support Level’s TLB handler, while the other one (1 - GENERALEXCEPT) should be set to the
@@ -129,6 +143,9 @@ void sst_state_init(void) {
 
 pcb_PTR test_pcb;
 
+// run n test max UPROCMAX
+#define TESTRUN 1
+
 void test(void) {
 
     // start the swap_mutex process
@@ -154,7 +171,7 @@ void test(void) {
     }
 
     // launch 8 sst with corrisponding u-procs
-    for (int asid = 0; asid < UPROCMAX; asid++) {
+    for (int asid = 0; asid < TESTRUN; asid++) {
         // setup sst state
         sst_state_init();
         
@@ -165,8 +182,9 @@ void test(void) {
 
     // wait for termination of all SST
     ssi_payload_t* payload;
-    for (int i = 0; i < UPROCMAX; i++) {
+    for (int i = 0; i < TESTRUN; i++) {
         SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+        klog_print(" [sst terminated] ");
     }
     // work is finished
     kill_process(SELF);
