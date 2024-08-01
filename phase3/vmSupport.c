@@ -68,7 +68,7 @@ unsigned int vpn_to_flash_block(unsigned int vpn) {
 
 
 unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_address) {
-    unsigned int command = (unsigned int)((unsigned int)block_to_write << 7) | FLASHWRITE;
+    unsigned int command = (unsigned int)((unsigned int)block_to_write << 8) | FLASHWRITE;
     unsigned status = 0;
     ssi_do_io_t do_io = {
         .commandAddr = flash_dev_address,
@@ -84,22 +84,15 @@ unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_addre
     return status;
 }
 
-unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, pteEntry_t *page) {
-    KLOG_PANIC("ERRR");
+unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, unsigned int block_to_write) {
     // calculate right flash dev
     memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
     
-    unsigned int vpn = page->pte_entryHI>> VPNSHIFT;
-    klog_print_hex(vpn);
-    klog_print(" ");
-    KLOG_PANIC("STOP")
-    
-    unsigned int block_to_write = vpn_to_flash_block(vpn);
-
-    // load start ram address to write in flash
+    // load start ram address to write to flash
     devreg_t* devReg =  (devreg_t*)dev_addr;
+
     devReg->dtp.data0 = mem_addr_to_read; // ?? bho
-    return flashDevWrite(block_to_write, dev_addr);
+    return flashDevWrite(block_to_write, &devReg->dtp.command);
 }
 
 unsigned int flashDevRead(unsigned int block_to_read, memaddr *flash_dev_address) {
@@ -171,6 +164,7 @@ void flash_status_debug(unsigned int status) {
 }
 
 void pager(void) {
+    klog_print("[entry not valid -> pager]");
     unsigned int saved_status;
     
     // 1 get support data
@@ -211,9 +205,18 @@ void pager(void) {
     unsigned int frame_victim = frame_victim_address >> 12;
     klog_print_hex(frame_victim);
 
+    klog_print("[missing page num ");
+    klog_print_dec(missing_page_num);
+    klog_print(" frame victim num ");
+    klog_print_dec(frame_victim_num);
+    klog_print(" frame victim addr ");
+    klog_print_hex(frame_victim_address);
+    klog_print(" frame victim ");
+    klog_print_hex(frame_victim);
+    klog_print("]");
+
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
-        KLOG_PANIC("NOT DONE")
         // 8
         // ATOMIC start
         saved_status = getSTATUS();
@@ -225,13 +228,17 @@ void pager(void) {
         // (b) Update the TLB, if needed
         updateTLB();
 
+        setSTATUS(saved_status);
+        // ATOMIC end
+
         // (c) Update process x’s backing store. Write the contents of frame i to the correct location on
         //     process x’s backing store/flash device
-        unsigned int write_status = writeFrameToFlashDev(swap_pool_table[frame_victim_num].sw_asid, frame_victim_address, swap_pool_table[frame_victim_num].sw_pte);
-        if (write_status != 3 && write_status != 1) { // if is not ready or busy
+        unsigned int write_status = writeFrameToFlashDev(swap_pool_table[frame_victim_num].sw_asid, frame_victim_address, frame_victim_num);
+        if (write_status != READY) { // if is not ready or busy
+            flash_status_debug(write_status);
             // trap
-            //TrapExceptionHandler(write_status); // ??
-            KLOG_PANIC("flash write not succesful")
+            //TrapExceptionHandler((unsigned int)read_status); // ??
+            KLOG_PANIC("flash writr not succesful")
         }
     }
     
@@ -253,15 +260,21 @@ void pager(void) {
     swap_pool_table[frame_victim_num].sw_pageNo   = missing_page_num;
     swap_pool_table[frame_victim_num].sw_pte      = &support_data->sup_privatePgTbl[missing_page_num];
 
+    // ATOMIC start
+    saved_status = getSTATUS();
+    setSTATUS(saved_status & ~IECON); // disable interrupts
+
     // 11 update the current process's page table entry
     support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim << VPNSHIFT) | DIRTYON | VALIDON;
 
     // 12 upadte the tlb
     updateTLB();
 
-    // 13
     setSTATUS(saved_status);
     // ATOMIC end
+
+    // 13
+    releaseSwap();
     
     // 14 return control to the current process
     LDST(exceptstate);

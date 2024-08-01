@@ -37,6 +37,7 @@ void support_syscall_exception_handler(support_t* support) {
     switch (reg_A0) {
     //perform a multi-way branching depending on the type of exception
         case SENDMSG: {
+            KLOG_ERROR("SENDMSG")
             if (reg_A1 == PARENT) {
                 reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
             }
@@ -44,6 +45,7 @@ void support_syscall_exception_handler(support_t* support) {
             break;
         }
         case RECEIVEMSG: {
+            KLOG_ERROR("RECEIVEMSG")
             SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
             // send response
             SYSCALL(SENDMESSAGE, (unsigned int)uproc_pbc[support->sup_asid], reg_A2, 0);
