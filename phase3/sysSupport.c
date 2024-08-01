@@ -45,6 +45,8 @@ void support_syscall_exception_handler(support_t* support) {
         }
         case RECEIVEMSG: {
             SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
+            // send response
+            SYSCALL(SENDMESSAGE, (unsigned int)uproc_pbc[support->sup_asid], reg_A2, 0);
             break;
         }
         default:

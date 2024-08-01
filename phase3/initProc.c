@@ -20,13 +20,13 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 
 // gain mutual exclusion over the swap pool
 void gainSwap(void) {
-    SYSCALL(SENDMSG, (unsigned int)swap_mutex, 0, 0);   // gainSwap[0]
-    SYSCALL(RECEIVEMSG, (unsigned int)swap_mutex, 0, 0);// gainSwap[1]
+    SYSCALL(SENDMESSAGE, (unsigned int)swap_mutex, 0, 0);   // gainSwap[0]
+    SYSCALL(RECEIVEMESSAGE, (unsigned int)swap_mutex, 0, 0);// gainSwap[1]
 }
 
 // release mutual exclusion over the swap pool
 void releaseSwap(void) {
-    SYSCALL(SENDMSG, (unsigned int)swap_mutex, 0, 0);
+    SYSCALL(SENDMESSAGE, (unsigned int)swap_mutex, 0, 0);
 }
 
 #define QPAGE 1024

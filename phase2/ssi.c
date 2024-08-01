@@ -84,6 +84,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             
             int intlineno, devno, regno;
             int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno, &regno);
+
             if (ret != 0) {
                 KLOG_PANIC("device not known")
             }

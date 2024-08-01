@@ -71,6 +71,7 @@ int terminal_write_string(int lenght, char* string, devreg_t* terminal_base_addr
 }
 
 void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
+    KLOG_ERROR("SST reqest")
     switch (service_code) {
         case GET_TOD: {
             cpu_t time;
@@ -122,6 +123,7 @@ void SST_function_entry_point() {
     //child u-proc start and initialization
     // support data is the same
     support_t* support = get_support_data();
+
     int asid = support->sup_asid;
     pcb_PTR uproc = create_process(&state_t_pool[asid], &support_t_pool[asid]);
     uproc_pbc[asid] = uproc;

@@ -85,10 +85,15 @@ unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_addre
 }
 
 unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, pteEntry_t *page) {
+    KLOG_PANIC("ERRR");
     // calculate right flash dev
     memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
     
-    unsigned int vpn = (page->pte_entryHI & GETPAGENO) >> VPNSHIFT;
+    unsigned int vpn = page->pte_entryHI>> VPNSHIFT;
+    klog_print_hex(vpn);
+    klog_print(" ");
+    KLOG_PANIC("STOP")
+    
     unsigned int block_to_write = vpn_to_flash_block(vpn);
 
     // load start ram address to write in flash
@@ -99,7 +104,7 @@ unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, p
 
 unsigned int flashDevRead(unsigned int block_to_read, memaddr *flash_dev_address) {
     unsigned int status = 0;
-    unsigned int value = (unsigned int)((unsigned int)block_to_read << 7) | FLASHREAD;
+    unsigned int value = (unsigned int)((unsigned int)block_to_read << 8) | FLASHREAD;
 
   ssi_do_io_t do_io = {
       .commandAddr = flash_dev_address,
@@ -114,21 +119,55 @@ unsigned int flashDevRead(unsigned int block_to_read, memaddr *flash_dev_address
   return status;
 }
 
-unsigned int readFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_write, pteEntry_t *page) {
+unsigned int readFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_write, unsigned int block_to_read) {
     // calculate right flash dev
     memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
     
-    unsigned int vpn = (page->pte_entryHI & GETPAGENO) >> VPNSHIFT;
-    unsigned int block_to_read = vpn_to_flash_block(vpn);
-    
     // load start ram address to write to flash
     devreg_t* devReg =  (devreg_t*)dev_addr;
+
     devReg->dtp.data0 = mem_addr_to_write; // ?? bho
-    return flashDevRead(block_to_read, dev_addr);
+    return flashDevRead(block_to_read, &devReg->dtp.command);
 }
 
 void updateTLB(void) {
     TLBCLR(); // TODO: 5.2 update tlb when all debugged
+}
+
+void flash_status_debug(unsigned int status) {
+    switch (status) {
+        case 0 :{
+            KLOG_ERROR("Device Not Installed")
+            break;
+        }
+        case 1 :{
+            KLOG_ERROR("Device Ready")
+            break;
+        }
+        case 2 :{
+            KLOG_ERROR("Illegal Operation Code Error")
+            break;
+        }
+        case 3 :{
+            KLOG_ERROR("Device Busy")
+            break;
+        }
+        case 4 :{
+            KLOG_ERROR("Read Error")
+            break;
+        }
+        case 5 :{
+            KLOG_ERROR("Write Error")
+            break;
+        }
+        case 6 :{
+            KLOG_ERROR("DMA Transfer Error")
+            break;
+        }
+        default: {
+            KLOG_ERROR("status?")
+        }
+    }
 }
 
 void pager(void) {
@@ -136,6 +175,12 @@ void pager(void) {
     
     // 1 get support data
     support_t* support_data = get_support_data();
+    if (support_data != &support_t_pool[0]) {
+        KLOG_PANIC("wrong support")
+    }
+    if (support_data->sup_asid != 0) {
+        KLOG_PANIC("wrong asid")
+    }
     
     // 2 determine the cause of the TLB exception
     state_t* exceptstate = &(support_data->sup_exceptState[PGFAULTEXCEPT]);
@@ -152,7 +197,8 @@ void pager(void) {
     
     // 5 Determine the missing page number (p)
     
-    unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
+    unsigned int missing_page = exceptstate->entry_hi >> VPNSHIFT;
+    unsigned int missing_page_num = missing_page - 0x80000;
     
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
@@ -163,6 +209,7 @@ void pager(void) {
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
+        KLOG_PANIC("NOT DONE")
         // 8
         // ATOMIC start
         saved_status = getSTATUS();
@@ -183,10 +230,15 @@ void pager(void) {
             KLOG_PANIC("flash write not succesful")
         }
     }
-
+    
     // 9 Read the contents of the Current Process’s backing store/flash device logical page p into frame i 
-    unsigned int read_status = readFrameToFlashDev(support_data->sup_asid, frame_victim_address, &support_data->sup_privatePgTbl[missing_page_num]);
-    if (read_status != 3 && read_status != 1) { // if is not ready or busy
+    unsigned int block_to_read = vpn_to_flash_block(missing_page);
+    if (block_to_read < 0 || block_to_read > 32) {
+        KLOG_PANIC("BLOCK ERROR")
+    }
+    unsigned int read_status = readFrameToFlashDev(support_data->sup_asid, frame_victim_address, block_to_read);
+    if (read_status != READY) { // if is not ready or busy
+        flash_status_debug(read_status);
         // trap
         //TrapExceptionHandler((unsigned int)read_status); // ??
         KLOG_PANIC("flash read not succesful")
