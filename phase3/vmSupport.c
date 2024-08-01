@@ -197,8 +197,10 @@ void pager(void) {
     
     // 5 Determine the missing page number (p)
     
-    unsigned int missing_page = exceptstate->entry_hi >> VPNSHIFT;
-    unsigned int missing_page_num = missing_page - 0x80000;
+    unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
+    if (missing_page_num > USERPGTBLSIZE) {
+        missing_page_num = USERPGTBLSIZE -1;
+    }
     
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
@@ -206,6 +208,8 @@ void pager(void) {
     // swap pool ???
     memaddr swap_pool_start = (memaddr)0x20020000;
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
+    unsigned int frame_victim = frame_victim_address >> 12;
+    klog_print_hex(frame_victim);
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
@@ -232,7 +236,7 @@ void pager(void) {
     }
     
     // 9 Read the contents of the Current Process’s backing store/flash device logical page p into frame i 
-    unsigned int block_to_read = vpn_to_flash_block(missing_page);
+    unsigned int block_to_read = missing_page_num;
     if (block_to_read < 0 || block_to_read > 32) {
         KLOG_PANIC("BLOCK ERROR")
     }
@@ -250,7 +254,7 @@ void pager(void) {
     swap_pool_table[frame_victim_num].sw_pte      = &support_data->sup_privatePgTbl[missing_page_num];
 
     // 11 update the current process's page table entry
-    support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim_address << VPNSHIFT) | DIRTYON | VALIDON;
+    support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim << VPNSHIFT) | DIRTYON | VALIDON;
 
     // 12 upadte the tlb
     updateTLB();
@@ -258,7 +262,7 @@ void pager(void) {
     // 13
     setSTATUS(saved_status);
     // ATOMIC end
-
+    
     // 14 return control to the current process
     LDST(exceptstate);
 }
