@@ -22,8 +22,24 @@ void SSI_function_entry_point() {
     }
 }
 
-int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno, int* regno) {
+int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
     int retstatus = 0;
+    for (int line = 0; line < N_INTERRUPT_LINES; line++) {
+        for (int dev = 0; dev < N_DEV_PER_IL; dev++) {
+            memaddr* addr = (memaddr*)DEV_REG_ADDR(line, dev);
+            if (addr > devaddr) {
+                if (dev == 0) {
+                    *lineno = line-1;
+                    *devno = N_DEV_PER_IL -1;
+                } else {
+                    *lineno = line;
+                    *devno = dev - 1;
+                }
+                return retstatus;
+            }
+        }
+    }
+    /*
     memaddr* base = 0;
     if (devaddr >= TERMINAL_DEVICES_START) {
         base = TERMINAL_DEVICES_START;
@@ -46,7 +62,7 @@ int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno, in
 
     *devno = (devaddr - base) / 16;
     *regno = (devaddr - base) % 16;
-
+    */
     return retstatus;
 }
 
@@ -82,8 +98,8 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
 
             
-            int intlineno, devno, regno;
-            int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno, &regno);
+            int intlineno, devno;
+            int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno);
 
             if (ret != 0) {
                 KLOG_PANIC("device not known")
@@ -94,6 +110,10 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
                 KLOG_PANIC("pcb not found");
             }
             // save it on the corrisponding device
+            klog_print_dec(intlineno),
+            klog_print(" ");
+            klog_print_dec(devno);
+            klog_print("#");
             insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
             *doioarg->commandAddr = doioarg->commandValue;

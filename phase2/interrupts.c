@@ -52,58 +52,34 @@ emulate a SENDMESSAGE call to the waiting pcb and set the sender to ssi_pcb
 */
 void nonTimerInterrupt(int line){
     unsigned int devnum;
-    unsigned int* interrupting_device_bit_map;
-    
-    // get installed device bitmap for a given line
-    switch (line) {
-        case 3:
-            interrupting_device_bit_map = (unsigned int*)0x10000040;
-            break;
-        case 4:
-            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x04);
-            break;
-        case 5:
-            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x08);
-            break;
-        case 6:
-            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x0c);
-            break;
-        case 7:
-            interrupting_device_bit_map = (unsigned int*)(0x10000040 + 0x10);
-            break;
-        default:
-            KLOG_PANIC("line don't match");
-    }
+    unsigned int* interrupting_device_bit_map = (unsigned int*)CDEV_BITMAP_ADDR(line);
 
-    // get the first installed device for that line
-    switch (*interrupting_device_bit_map) {
-        case DEV0ON:
-            devnum = 0;
-            break;
-        case DEV1ON:
-            devnum = 1;
-            break;
-        case DEV2ON:
-            devnum = 2;
-            break;
-        case DEV3ON:
-            devnum = 3;
-            break;
-        case DEV4ON:
-            devnum = 4;
-            break;
-        case DEV5ON:
-            devnum = 5;
-            break;
-        case DEV6ON:
-            devnum = 6;
-            break;
-        case DEV7ON:
-            devnum = 7;
-            break;
-        default:
-            KLOG_PANIC("interrupting_device_bit_map don't match");
-            break;
+    
+    if (((*interrupting_device_bit_map) & DEV0ON) != 0) {
+        devnum = 0;
+    }
+    else if (((*interrupting_device_bit_map) & DEV1ON) != 0) {
+        devnum = 1;
+    }
+    else if (((*interrupting_device_bit_map) & DEV2ON) != 0) {
+        devnum = 2;
+    }
+    else if (((*interrupting_device_bit_map) & DEV3ON) != 0) {
+        devnum = 3;
+    }
+    else if (((*interrupting_device_bit_map) & DEV4ON) != 0) {
+        devnum = 4;
+    }
+    else if (((*interrupting_device_bit_map) & DEV5ON) != 0) {
+        devnum = 5;
+    }
+    else if (((*interrupting_device_bit_map) & DEV6ON) != 0) {
+        devnum = 6;
+    }
+    else if (((*interrupting_device_bit_map) & DEV7ON) != 0) {
+        devnum = 7;
+    } else {
+        KLOG_PANIC("interrupting_device_bit_map don't match");
     }
     
     /*
@@ -165,6 +141,11 @@ void nonTimerInterrupt(int line){
     pcb_t* unblocked = removeProcQ(&blocked_pcbs[calcBlockedQueueNo(line, devnum)]);
     
     if (unblocked == NULL) {
+        klog_print_dec(line),
+        klog_print(" ");
+        klog_print_dec(devnum);
+        klog_print(" ");
+        klog_print_dec(calcBlockedQueueNo(line, devnum));
         KLOG_PANIC("pcb not found");
     }
     soft_block_count--;

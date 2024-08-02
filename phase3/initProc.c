@@ -113,8 +113,8 @@ void uproc_init(int asid) {
     //assign the SP value to RAMTOP-PAGESIZE.
     unsigned int ramtop;
     RAMTOP(ramtop);
-    support->sup_exceptContext[0].stackPtr = ramtop - PAGESIZE;
-    support->sup_exceptContext[1].stackPtr = ramtop - PAGESIZE;
+    support->sup_exceptContext[0].stackPtr = ramtop - ((1+ asid)*PAGESIZE);
+    support->sup_exceptContext[1].stackPtr = ramtop - ((1+ asid)*PAGESIZE);
 }
 
 /*
@@ -176,7 +176,7 @@ void test(void) {
         // support is same as u-proc
         sst_pcb[asid] = create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);
     }
-
+    //sst_pcb[TESTRUN - 1] = create_process(&state_t_sst_pool[TESTRUN - 1], &support_t_pool[TESTRUN - 1]);
 
     // wait for termination of all SST
     void* payload;
@@ -184,6 +184,8 @@ void test(void) {
         SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
         klog_print(" [sst terminated] ");
     }
+    //SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+    klog_print(" [test terminated] ");
     // work is finished
     kill_process(SELF);
 }

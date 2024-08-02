@@ -84,7 +84,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             KLOG_ERROR("TERMINATE")
             KLOG_ERROR(" [uproc terminated] ")
             // send a message to test process to tell that one SST is killed 
-            SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
+            SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0); // TODO: this make kill all
             // kill sst and so his child
             kill_process(SELF);
             break;
