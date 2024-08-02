@@ -71,17 +71,14 @@ int terminal_write_string(int lenght, char* string, devreg_t* terminal_base_addr
 }
 
 void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
-    KLOG_ERROR("SST r")
     switch (service_code) {
         case GET_TOD: {
-            KLOG_ERROR("GET_TOD")
             cpu_t time;
             STCK(time);
             SYSCALL(SENDMESSAGE, (unsigned int)sender, (unsigned int)(time), 0);
             break;
         }
         case TERMINATE: {
-            KLOG_ERROR("TERMINATE")
             KLOG_ERROR(" [uproc terminated] ")
             // send a message to test process to tell that one SST is killed 
             SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0); // TODO: this make kill all
@@ -90,7 +87,6 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             break;
         }
         case WRITEPRINTER: {
-            KLOG_ERROR("WRITEPRINT")
             sst_print_PTR print_payload = (sst_print_PTR)arg;
             // calculate the base addr of printer
             int line = sender->p_supportStruct->sup_asid;
@@ -104,7 +100,6 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             break;
         }
         case WRITETERMINAL: {
-            KLOG_ERROR("WRITETERM")
             sst_print_PTR print_payload = (sst_print_PTR)arg;
             // calculate the base addr of printer
             int line = sender->p_supportStruct->sup_asid;
@@ -121,7 +116,6 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             KLOG_PANIC("service code not found")
         }
     }
-    KLOG_ERROR("SST e")
 }
 
 void SST_function_entry_point() {

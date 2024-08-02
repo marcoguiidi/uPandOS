@@ -18,26 +18,26 @@ sysSupport.c: This module implements the Support Level’s:
 #include <umps3/umps/cp0.h>
 #include "../klog.h"
 
-void debung_program_running(void) {
+void debung_program_running(pcb_PTR pcb) {
     klog_print("is exec ");
-    if (current_process == NULL) {
+    if (pcb == NULL) {
         klog_print("kernel or error\n");
         return;
     }
-    if (current_process == ssi_pcb) {
+    if (pcb == ssi_pcb) {
         klog_print("ssi\n");
         return;
     }
-    if (current_process == test_pcb) {
+    if (pcb == test_pcb) {
         klog_print("test\n");
         return;
     }
-    if (current_process == swap_mutex) {
+    if (pcb == swap_mutex) {
         klog_print("swap mutex\n");
         return;
     }
     for (int i = 0; i < UPROCMAX; i++) {
-        if (current_process == sst_pcb[i]) {
+        if (pcb == sst_pcb[i]) {
             klog_print("sst[");
             klog_print_dec(i);
             klog_print("]\n");
@@ -45,7 +45,7 @@ void debung_program_running(void) {
         }
     }
     for (int i = 0; i < UPROCMAX; i++) {
-        if (current_process == uproc_pbc[i]) {
+        if (pcb == uproc_pbc[i]) {
             klog_print("uproc[");
             klog_print_dec(i);
             klog_print("]\n");
@@ -69,7 +69,6 @@ void support_syscall_exception_handler(support_t* support) {
     switch (reg_A0) {
     //perform a multi-way branching depending on the type of exception
         case SENDMSG: {
-            KLOG_ERROR("SENDMSG")
             if (reg_A1 == PARENT) {
                 reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
             }
@@ -77,7 +76,6 @@ void support_syscall_exception_handler(support_t* support) {
             break;
         }
         case RECEIVEMSG: {
-            KLOG_ERROR("RECEIVEMSG")
             SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
             // send response
             //KLOG_ERROR("SEND RESP")
@@ -86,7 +84,7 @@ void support_syscall_exception_handler(support_t* support) {
         }
         default:
             klog_print_dec(reg_A0);
-            debung_program_running();
+            debung_program_running(current_process);
             KLOG_PANIC("USYS code not found")
             break;
     }
@@ -159,7 +157,7 @@ void support_trap_exception_handler(support_t* support) {
     // debug
     state_t* state = &support->sup_exceptState[GENERALEXCEPT];
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
-    debung_program_running();
+    debung_program_running(current_process);
     debug_trap(ExcCode);
     KLOG_PANIC("p k")
     // send message to swap mutex

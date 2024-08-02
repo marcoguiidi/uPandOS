@@ -39,30 +39,6 @@ int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
             }
         }
     }
-    /*
-    memaddr* base = 0;
-    if (devaddr >= TERMINAL_DEVICES_START) {
-        base = TERMINAL_DEVICES_START;
-        *lineno = 7;
-    } else if (devaddr >= PRINTER_DEVICES_START) {
-        base = PRINTER_DEVICES_START;
-        *lineno = 6;
-    } else if (devaddr >= ETHERNET_DEVICES_START) {
-        base = ETHERNET_DEVICES_START;
-        *lineno = 5;
-    } else if (devaddr >= FLASH_DEVICES_START) {
-        base = FLASH_DEVICES_START;
-        *lineno = 4;
-    } else if (devaddr >= DISK_DEVICES_START) {
-        base = DISK_DEVICES_START;
-        *lineno = 3;
-    } else {
-        retstatus = -1;
-    }
-
-    *devno = (devaddr - base) / 16;
-    *regno = (devaddr - base) % 16;
-    */
     return retstatus;
 }
 
@@ -110,10 +86,6 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
                 KLOG_PANIC("pcb not found");
             }
             // save it on the corrisponding device
-            klog_print_dec(intlineno),
-            klog_print(" ");
-            klog_print_dec(devno);
-            klog_print("#");
             insertProcQ(&blocked_pcbs[calcBlockedQueueNo(intlineno, devno)], suspended_process);
             soft_block_count++;
             *doioarg->commandAddr = doioarg->commandValue;

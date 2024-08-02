@@ -141,7 +141,7 @@ void flash_status_debug(unsigned int status) {
 }
 
 void pager(void) {
-    klog_print("[entry not valid -> pager]");
+    //klog_print("[entry not valid -> pager]");
     unsigned int saved_status;
     
     // 1 get support data
@@ -175,15 +175,15 @@ void pager(void) {
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
     unsigned int frame_victim = frame_victim_address >> 12;
     
-    klog_print("[missing page num ");
-    klog_print_dec(missing_page_num);
-    klog_print(" frame victim num ");
-    klog_print_dec(frame_victim_num);
-    klog_print(" frame victim addr ");
-    klog_print_hex(frame_victim_address);
-    klog_print(" frame victim ");
-    klog_print_hex(frame_victim);
-    klog_print("]");
+    //klog_print("[missing page num ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" frame victim num ");
+    //klog_print_dec(frame_victim_num);
+    //klog_print(" frame victim addr ");
+    //klog_print_hex(frame_victim_address);
+    //klog_print(" frame victim ");
+    //klog_print_hex(frame_victim);
+    //klog_print("]");
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {

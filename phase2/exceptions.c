@@ -26,13 +26,13 @@ void uTLB_RefillHandler() {
     // 2 get the page table entry for page number for the current process
     pteEntry_t* missing_tlb_entry = &current_process->p_supportStruct->sup_privatePgTbl[missing_page_num];
 
-    klog_print("[missing page ");
-    klog_print_dec(missing_page_num);
-    klog_print(" tlb entry");
-    klog_print_hex(missing_tlb_entry->pte_entryHI);
-    klog_print(" ");
-    klog_print_hex(missing_tlb_entry->pte_entryLO);
-    klog_print("]");
+    //klog_print("[missing page ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" tlb entry");
+    //klog_print_hex(missing_tlb_entry->pte_entryHI);
+    //klog_print(" ");
+    //klog_print_hex(missing_tlb_entry->pte_entryLO);
+    //klog_print("]");
     
     // 3 write the page table entry into the TLB
     setENTRYHI(missing_tlb_entry->pte_entryHI);

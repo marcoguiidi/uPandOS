@@ -8,6 +8,7 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include "./headers/initProc.h"
 #include "./headers/sst.h"
 #include "./headers/misc.h"
+#include "../phase2/headers/misc.h"
 #include "headers/sysSupport.h"
 #include "headers/vmSupport.h"
 #include <umps3/umps/const.h>
@@ -113,8 +114,8 @@ void uproc_init(int asid) {
     //assign the SP value to RAMTOP-PAGESIZE.
     unsigned int ramtop;
     RAMTOP(ramtop);
-    support->sup_exceptContext[0].stackPtr = ramtop - ((1+ asid)*PAGESIZE);
-    support->sup_exceptContext[1].stackPtr = ramtop - ((1+ asid)*PAGESIZE);
+    support->sup_exceptContext[0].stackPtr = ramtop - ((1+ asid)*QPAGE);
+    support->sup_exceptContext[1].stackPtr = ramtop - ((1+ asid)*QPAGE);
 }
 
 /*
@@ -142,7 +143,7 @@ void sst_state_init(void) {
 }
 
 // run n test max UPROCMAX
-#define TESTRUN 2
+#define TESTRUN 3
 
 void test(void) {
 
@@ -180,11 +181,23 @@ void test(void) {
 
     // wait for termination of all SST
     void* payload;
+    /*while (TRUE) {
+        pcb_PTR p = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+        
+        debung_program_running(p);
+        process_killall(p);
+        
+        if (p == sst_pcb[1]) {
+            break;
+        } else {
+            KLOG_ERROR("NOT SST[1]")
+        }
+    }*/
     for (int i = 0; i < TESTRUN; i++) {
         SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
-        klog_print(" [sst terminated] ");
+        SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
     }
-    //SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+    
     klog_print(" [test terminated] ");
     // work is finished
     kill_process(SELF);
