@@ -142,7 +142,7 @@ void sst_state_init(void) {
 }
 
 // run n test max UPROCMAX
-#define TESTRUN 1
+#define TESTRUN 2
 
 void test(void) {
 
@@ -168,10 +168,10 @@ void test(void) {
         uproc_init(asid);
     }
 
+    sst_state_init();
     // launch 8 sst with corrisponding u-procs
     for (int asid = 0; asid < TESTRUN; asid++) {
         // setup sst state
-        sst_state_init();
         
         // support is same as u-proc
         sst_pcb[asid] = create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);

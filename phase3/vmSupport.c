@@ -141,18 +141,12 @@ void flash_status_debug(unsigned int status) {
 }
 
 void pager(void) {
-    //klog_print("[entry not valid -> pager]");
+    klog_print("[entry not valid -> pager]");
     unsigned int saved_status;
     
     // 1 get support data
     support_t* support_data = get_support_data();
-    if (support_data != &support_t_pool[0]) {
-        KLOG_PANIC("wrong support")
-    }
-    if (support_data->sup_asid != 0) {
-        KLOG_PANIC("wrong asid")
-    }
-    
+
     // 2 determine the cause of the TLB exception
     state_t* exceptstate = &(support_data->sup_exceptState[PGFAULTEXCEPT]);
     
@@ -181,16 +175,15 @@ void pager(void) {
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
     unsigned int frame_victim = frame_victim_address >> 12;
     
-    //klog_print_hex(frame_victim);
-    //klog_print("[missing page num ");
-    //klog_print_dec(missing_page_num);
-    //klog_print(" frame victim num ");
-    //klog_print_dec(frame_victim_num);
-    //klog_print(" frame victim addr ");
-    //klog_print_hex(frame_victim_address);
-    //klog_print(" frame victim ");
-    //klog_print_hex(frame_victim);
-    //klog_print("]");
+    klog_print("[missing page num ");
+    klog_print_dec(missing_page_num);
+    klog_print(" frame victim num ");
+    klog_print_dec(frame_victim_num);
+    klog_print(" frame victim addr ");
+    klog_print_hex(frame_victim_address);
+    klog_print(" frame victim ");
+    klog_print_hex(frame_victim);
+    klog_print("]");
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
