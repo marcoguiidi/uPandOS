@@ -6,7 +6,6 @@
 #include <umps3/umps/types.h>
 
 extern pcb_PTR swap_mutex;
-extern pcb_PTR test_pcb;
 extern pcb_PTR    sst_pcb[8];
 extern pcb_PTR uproc_pbc[8];
 

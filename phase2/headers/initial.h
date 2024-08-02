@@ -14,6 +14,7 @@ extern int process_count;
 extern int soft_block_count;
 extern struct list_head ready_queue;
 extern pcb_t* current_process;
+extern pcb_t* test_pcb;
 
 /*
 queue num

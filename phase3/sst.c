@@ -77,7 +77,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             KLOG_ERROR("GET_TOD")
             cpu_t time;
             STCK(time);
-            SYSCALL(SENDMESSAGE, (unsigned int)sender, (unsigned int)(&time), 0);
+            SYSCALL(SENDMESSAGE, (unsigned int)sender, (unsigned int)(time), 0);
             break;
         }
         case TERMINATE: {

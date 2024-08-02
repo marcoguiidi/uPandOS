@@ -44,29 +44,6 @@ int isSwapPoolFrameOccupied(unsigned int framenum) {
     else return FALSE;
 }
 
-// flash devices
-// 4KB blocksize, 512 blocks
-// ram 
-// 4KB framesize, 128 frames
-
-unsigned int vpn_to_flash_block(unsigned int vpn) {
-    // VPN 0x80000 block 0
-    // ...
-    // VPN 0x8001E block 30
-    // VPN 0xBFFFF(stack) block 31
-    if (vpn >= 0x80000 && vpn <= 0x8001E) {
-        return (vpn - 0x80000); // 0 - 30
-    }
-    else if (vpn == 0xBFFFF) {
-        return 31;
-    } else {
-        klog_print_hex(vpn);
-        KLOG_PANIC("translation error")
-    }
-    return -1;
-}
-
-
 unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_address) {
     unsigned int command = (unsigned int)((unsigned int)block_to_write << 8) | FLASHWRITE;
     unsigned status = 0;
@@ -164,7 +141,7 @@ void flash_status_debug(unsigned int status) {
 }
 
 void pager(void) {
-    klog_print("[entry not valid -> pager]");
+    //klog_print("[entry not valid -> pager]");
     unsigned int saved_status;
     
     // 1 get support data
@@ -203,20 +180,21 @@ void pager(void) {
     memaddr swap_pool_start = (memaddr)0x20020000;
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
     unsigned int frame_victim = frame_victim_address >> 12;
-    klog_print_hex(frame_victim);
-
-    klog_print("[missing page num ");
-    klog_print_dec(missing_page_num);
-    klog_print(" frame victim num ");
-    klog_print_dec(frame_victim_num);
-    klog_print(" frame victim addr ");
-    klog_print_hex(frame_victim_address);
-    klog_print(" frame victim ");
-    klog_print_hex(frame_victim);
-    klog_print("]");
+    
+    //klog_print_hex(frame_victim);
+    //klog_print("[missing page num ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" frame victim num ");
+    //klog_print_dec(frame_victim_num);
+    //klog_print(" frame victim addr ");
+    //klog_print_hex(frame_victim_address);
+    //klog_print(" frame victim ");
+    //klog_print_hex(frame_victim);
+    //klog_print("]");
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
+        KLOG_ERROR("warnzone")
         // 8
         // ATOMIC start
         saved_status = getSTATUS();

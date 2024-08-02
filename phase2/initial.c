@@ -33,7 +33,11 @@ unsigned int lastpid = 1;
 
 pcb_t* ssi_pcb;
 
+pcb_t* test_pcb;
+
 cpu_t acc_cpu_time;
+
+
 
 
 int main(void) {
@@ -116,7 +120,7 @@ int main(void) {
     /*
     (1.7)
     */
-    pcb_t* test_pcb = allocPcb();
+    test_pcb = allocPcb();
     /*
     p.25 of uMPS3princOfOperations.pdf 
     */

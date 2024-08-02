@@ -26,13 +26,13 @@ void uTLB_RefillHandler() {
     // 2 get the page table entry for page number for the current process
     pteEntry_t* missing_tlb_entry = &current_process->p_supportStruct->sup_privatePgTbl[missing_page_num];
 
-    klog_print("[missing page ");
-    klog_print_dec(missing_page_num);
-    klog_print(" tlb entry");
-    klog_print_hex(missing_tlb_entry->pte_entryHI);
-    klog_print(" ");
-    klog_print_hex(missing_tlb_entry->pte_entryLO);
-    klog_print("]");
+    //klog_print("[missing page ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" tlb entry");
+    //klog_print_hex(missing_tlb_entry->pte_entryHI);
+    //klog_print(" ");
+    //klog_print_hex(missing_tlb_entry->pte_entryLO);
+    //klog_print("]");
     
     // 3 write the page table entry into the TLB
     setENTRYHI(missing_tlb_entry->pte_entryHI);
@@ -102,7 +102,7 @@ void exceptionHandler() {
         if (was_in_kernel_mode)
             systemcallHandler(exception_state);
         else {
-            exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
+            //exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
             TrapExceptionHandler(exception_state);
         }    
     } else {
@@ -122,7 +122,7 @@ void systemcallHandler(state_t* exceptionState) {
 
     switch (reg_A0) {
     //perform a multi-way branching depending on the type of exception
-        case SENDMESSAGE:
+        case SENDMESSAGE: {
             
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
@@ -163,8 +163,8 @@ void systemcallHandler(state_t* exceptionState) {
             current_process->p_time -= get_elapsed_time_interupt(); 
             //updated by subtracting the time elapsed during the interrupt
             break;
-
-        case RECEIVEMESSAGE:
+        }
+        case RECEIVEMESSAGE: {
             
             pcb_t *sender_process = (pcb_PTR)reg_A1;
             //extract mex from inbox
@@ -196,7 +196,7 @@ void systemcallHandler(state_t* exceptionState) {
 
             freeMsg(msg);
             break;
-        
+        }
         default:
             TrapExceptionHandler(exceptionState);
             break;

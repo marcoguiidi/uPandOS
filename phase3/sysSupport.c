@@ -18,52 +18,6 @@ sysSupport.c: This module implements the Support Level’s:
 #include <umps3/umps/cp0.h>
 #include "../klog.h"
 
-/*
-in virtual memory?
-current_process ?? maybey is not accessible
-*/
-
-void support_syscall_exception_handler(support_t* support) {
-    // get state register at time of syscall
-    state_t* exceptionState = &support->sup_exceptState[GENERALEXCEPT];
-
-    // syscall type
-    int reg_A0 = exceptionState->reg_a0;
-    // dest process
-    unsigned int reg_A1 = exceptionState->reg_a1;
-    // payload of the mex
-    unsigned int reg_A2 = exceptionState->reg_a2;
-
-    switch (reg_A0) {
-    //perform a multi-way branching depending on the type of exception
-        case SENDMSG: {
-            KLOG_ERROR("SENDMSG")
-            if (reg_A1 == PARENT) {
-                reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
-            }
-            SYSCALL(SENDMESSAGE, reg_A1, reg_A2, 0);
-            break;
-        }
-        case RECEIVEMSG: {
-            KLOG_ERROR("RECEIVEMSG")
-            SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
-            // send response
-            SYSCALL(SENDMESSAGE, (unsigned int)uproc_pbc[support->sup_asid], reg_A2, 0);
-            break;
-        }
-        default:
-            klog_print_dec(reg_A0);
-            KLOG_PANIC("USYS code not found")
-            break;
-    }
-    // reuturn from non bloking
-    exceptionState->pc_epc += WORDLEN; //pc updated
-    /*move the PC to the next instruction, avoiding entering an 
-    infinite loop that would repeat the same syscall*/
-    LDST(exceptionState);
-    //restores processor state
-}
-
 void debung_program_running(void) {
     klog_print("is exec ");
     if (current_process == NULL) {
@@ -99,6 +53,49 @@ void debung_program_running(void) {
         }
     }
     klog_print("unknown\n");
+}
+
+void support_syscall_exception_handler(support_t* support) {
+    // get state register at time of syscall
+    state_t* exceptionState = &support->sup_exceptState[GENERALEXCEPT];
+
+    // syscall type
+    int reg_A0 = exceptionState->reg_a0;
+    // dest process
+    unsigned int reg_A1 = exceptionState->reg_a1;
+    // payload of the mex
+    unsigned int reg_A2 = exceptionState->reg_a2;
+
+    switch (reg_A0) {
+    //perform a multi-way branching depending on the type of exception
+        case SENDMSG: {
+            KLOG_ERROR("SENDMSG")
+            if (reg_A1 == PARENT) {
+                reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
+            }
+            SYSCALL(SENDMESSAGE, reg_A1, reg_A2, 0);
+            break;
+        }
+        case RECEIVEMSG: {
+            KLOG_ERROR("RECEIVEMSG")
+            SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
+            // send response
+            //KLOG_ERROR("SEND RESP")
+            //SYSCALL(SENDMESSAGE, (unsigned int)uproc_pbc[support->sup_asid], reg_A2, 0);
+            break;
+        }
+        default:
+            klog_print_dec(reg_A0);
+            debung_program_running();
+            KLOG_PANIC("USYS code not found")
+            break;
+    }
+    // reuturn from non bloking
+    exceptionState->pc_epc += WORDLEN; //pc updated
+    /*move the PC to the next instruction, avoiding entering an 
+    infinite loop that would repeat the same syscall*/
+    LDST(exceptionState);
+    //restores processor state
 }
 
 void debug_trap(unsigned int ExcCode) {

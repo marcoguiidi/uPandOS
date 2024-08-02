@@ -41,6 +41,9 @@ pcb_t *create_process(state_t* state, support_t* support) {
 
 #define SELF (pcb_t*)NULL
 pcb_t* kill_process(pcb_t* process) {
+    if (process == SELF) {
+        process = current_process;
+    }
     pcb_t *p;
     ssi_payload_t payload = {
         .service_code = TERMPROCESS,

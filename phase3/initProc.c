@@ -141,8 +141,6 @@ void sst_state_init(void) {
     }
 }
 
-pcb_PTR test_pcb;
-
 // run n test max UPROCMAX
 #define TESTRUN 1
 
@@ -181,7 +179,7 @@ void test(void) {
 
 
     // wait for termination of all SST
-    ssi_payload_t* payload;
+    void* payload;
     for (int i = 0; i < TESTRUN; i++) {
         SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
         klog_print(" [sst terminated] ");
