@@ -19,6 +19,7 @@ process count, soft blocked count, blocked PCBs lists/pointers, etc.)
 #include <umps3/umps/types.h>
 
 #include "../phase3/headers/initProc.h"
+#include "../klog.h"
 
 int process_count = 0;
 int soft_block_count = 0;
@@ -36,6 +37,26 @@ pcb_t* ssi_pcb;
 pcb_t* test_pcb;
 
 cpu_t acc_cpu_time;
+
+#define SWAP_POOL_START 0x20020000
+#define SWAP_POOL_END   SWAP_POOL_START + MAXPAGES * PAGESIZE
+unsigned int getuserstack(void) {
+    static unsigned int times = 0;
+    times++;
+    unsigned int ramtop;
+    RAMTOP(ramtop);
+    unsigned int sptr = (ramtop - times*PAGESIZE);
+    //klog_print_hex(sptr);
+    //KLOG_ERROR("stack")
+    if (sptr <= SWAP_POOL_END) {
+        KLOG_PANIC("user stack all used")
+    }
+    if (sptr >= ramtop) {
+        KLOG_PANIC("above ramtop")
+    }
+    return sptr;
+}
+
 
 
 
@@ -107,7 +128,7 @@ int main(void) {
     p.25 of uMPS3princOfOperations.pdf 
     */
     ssi_pcb->p_s.status = (STATUS_IEp ) & (~STATUS_KUp);
-    RAMTOP(ssi_pcb->p_s.reg_sp);
+    ssi_pcb->p_s.reg_sp = getuserstack();
     /*
     For rather technical reasons, whenever one assigns a value to the PC one must also assign the
     same value to the general purpose register t9 (a.k.a. s_t9 as defined in types.h)
@@ -125,8 +146,8 @@ int main(void) {
     p.25 of uMPS3princOfOperations.pdf 
     */
     test_pcb->p_s.status = ( STATUS_IEp | STATUS_TE) & (~STATUS_KUp);
-    RAMTOP(test_pcb->p_s.reg_sp); // FRAMESIZE è pagesize, sbagiate le specifiche
-    test_pcb->p_s.reg_sp -= 2 * PAGESIZE; /*the SP set to RAMTOP - (2 * FRAMESIZE)*/
+    
+    test_pcb->p_s.reg_sp = getuserstack();
     test_pcb->p_s.pc_epc = (memaddr)test;
     test_pcb->p_s.reg_t9 = (memaddr)test;
     test_pcb->p_time = 0;

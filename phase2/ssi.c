@@ -22,6 +22,7 @@ void SSI_function_entry_point() {
     }
 }
 
+// TODO: funzione bugata
 int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
     int retstatus = 0;
     for (int line = 0; line < N_INTERRUPT_LINES; line++) {
@@ -29,6 +30,7 @@ int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
             memaddr* addr = (memaddr*)DEV_REG_ADDR(line, dev);
             if (addr > devaddr) {
                 if (dev == 0) {
+                    KLOG_ERROR("LESES")
                     *lineno = line-1;
                     *devno = N_DEV_PER_IL -1;
                 } else {
@@ -39,6 +41,7 @@ int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
             }
         }
     }
+    KLOG_PANIC("lineno devno not resolved")
     return retstatus;
 }
 

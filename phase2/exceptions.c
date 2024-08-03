@@ -102,7 +102,7 @@ void exceptionHandler() {
         if (was_in_kernel_mode)
             systemcallHandler(exception_state);
         else {
-            //exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
+            exception_state->cause = PRIVINSTR; // RI = 10 reserved instruction
             TrapExceptionHandler(exception_state);
         }    
     } else {

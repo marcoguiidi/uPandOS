@@ -92,4 +92,6 @@ extern unsigned int lastpid;
 
 extern cpu_t acc_cpu_time;
 
+unsigned int getuserstack(void);
+
 #endif

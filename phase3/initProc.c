@@ -16,6 +16,7 @@ swap mutex PCB [Section 10] and optionally the device PCBs).
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
 #include "../klog.h"
+#include "../phase2/headers/initial.h"
 
 // swap mutex maybe not accessible
 
@@ -112,10 +113,9 @@ void uproc_init(int asid) {
     //Important: SP values are always the end of the area, not the start. Hence, to use the penul-
     //timate RAM frame as a U-proc’s stack space for one of its Support Level handlers, one would
     //assign the SP value to RAMTOP-PAGESIZE.
-    unsigned int ramtop;
-    RAMTOP(ramtop);
-    support->sup_exceptContext[0].stackPtr = ramtop - ((1+ asid)*QPAGE);
-    support->sup_exceptContext[1].stackPtr = ramtop - ((1+ asid)*QPAGE);
+    
+    support->sup_exceptContext[0].stackPtr = getuserstack();
+    support->sup_exceptContext[1].stackPtr = getuserstack();
 }
 
 /*
@@ -133,7 +133,7 @@ void sst_state_init(void) {
         state->pc_epc = (memaddr)SST_function_entry_point;
         state->reg_t9 = (memaddr)SST_function_entry_point;
         // sp set to kernelstack - (2+n)*QPAGE
-        state->reg_sp = KERNELSTACK - (2+asid)*QPAGE;
+        state->reg_sp = getuserstack();
         // status set for kernel mode with all interrupts and the plt enabled
         state->status = 0b00 | 0b1 | IMON | TEBITON;
         //         kernel mode| global interrupt enable bit
@@ -143,7 +143,7 @@ void sst_state_init(void) {
 }
 
 // run n test max UPROCMAX
-#define TESTRUN 3
+#define TESTRUN 8
 
 void test(void) {
 
@@ -154,7 +154,7 @@ void test(void) {
     swap_mutex_state->pc_epc = (memaddr)swap_mutex_function;
     swap_mutex_state->reg_t9 = (memaddr)swap_mutex_function;
     // sp set to kernelstack - QPAGE
-    swap_mutex_state->reg_sp = KERNELSTACK - QPAGE;
+    swap_mutex_state->reg_sp = getuserstack();
     // status set for kernel mode with all interrupts and the plt enabled
     swap_mutex_state->status = 0b00 | 0b1 | IMON | TEBITON;
     
