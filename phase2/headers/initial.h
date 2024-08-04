@@ -14,6 +14,7 @@ extern int process_count;
 extern int soft_block_count;
 extern struct list_head ready_queue;
 extern pcb_t* current_process;
+extern pcb_t* test_pcb;
 
 /*
 queue num
@@ -90,5 +91,7 @@ extern pcb_t* ssi_pcb;
 extern unsigned int lastpid;
 
 extern cpu_t acc_cpu_time;
+
+unsigned int getuserstack(void);
 
 #endif

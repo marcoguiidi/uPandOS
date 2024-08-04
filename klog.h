@@ -24,7 +24,6 @@ void klog_print_hex(unsigned int num);
     klog_print(" at line: ");\
     klog_print_dec(__LINE__);\
     klog_print("> ");\
-    next_line();
 
 #define KLOG_PANIC(explaintext)\
     KLOG_ERROR(explaintext)\

@@ -1,7 +1,6 @@
 #ifndef SST_H
-#define SST_H
+#define  SST_H
 
-#include "../../headers/types.h"
-#include "../../headers/const.h"
+void SST_function_entry_point();
 
 #endif

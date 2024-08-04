@@ -22,31 +22,26 @@ void SSI_function_entry_point() {
     }
 }
 
-int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno, int* regno) {
+// TODO: funzione bugata
+int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
     int retstatus = 0;
-    memaddr* base = 0;
-    if (devaddr >= TERMINAL_DEVICES_START) {
-        base = TERMINAL_DEVICES_START;
-        *lineno = 7;
-    } else if (devaddr >= PRINTER_DEVICES_START) {
-        base = PRINTER_DEVICES_START;
-        *lineno = 6;
-    } else if (devaddr >= ETHERNET_DEVICES_START) {
-        base = ETHERNET_DEVICES_START;
-        *lineno = 5;
-    } else if (devaddr >= FLASH_DEVICES_START) {
-        base = FLASH_DEVICES_START;
-        *lineno = 4;
-    } else if (devaddr >= DISK_DEVICES_START) {
-        base = DISK_DEVICES_START;
-        *lineno = 3;
-    } else {
-        retstatus = -1;
+    for (int line = 0; line < N_INTERRUPT_LINES; line++) {
+        for (int dev = 0; dev < N_DEV_PER_IL; dev++) {
+            memaddr* addr = (memaddr*)DEV_REG_ADDR(line, dev);
+            if (addr > devaddr) {
+                if (dev == 0) {
+                    KLOG_ERROR("LESES")
+                    *lineno = line-1;
+                    *devno = N_DEV_PER_IL -1;
+                } else {
+                    *lineno = line;
+                    *devno = dev - 1;
+                }
+                return retstatus;
+            }
+        }
     }
-
-    *devno = (devaddr - base) / 16;
-    *regno = (devaddr - base) % 16;
-
+    KLOG_PANIC("lineno devno not resolved")
     return retstatus;
 }
 
@@ -82,8 +77,9 @@ void SSIRequest(pcb_t* sender, int service, void* arg) {
             ssi_do_io_PTR doioarg = (ssi_do_io_PTR)arg;
 
             
-            int intlineno, devno, regno;
-            int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno, &regno);
+            int intlineno, devno;
+            int ret = devaddr_get_lineno_devno_regno(doioarg->commandAddr, &intlineno, &devno);
+
             if (ret != 0) {
                 KLOG_PANIC("device not known")
             }

@@ -11,13 +11,36 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 #include "../phase1/headers/msg.h"
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 #include "../klog.h"
 
+// TODO: va in loop, non gli do una pagina invalida e non va in pager
 void uTLB_RefillHandler() {
-    setENTRYHI(0x80000000);
-    setENTRYLO(0x00000000);
+    // 1 determine the page number of the missing TLB entry
+    state_t *exception_state = (state_t *)BIOSDATAPAGE;
+    unsigned int missing_page_num = (exception_state->entry_hi & GETPAGENO) >> VPNSHIFT;
+    if (missing_page_num > USERPGTBLSIZE) {
+        missing_page_num = USERPGTBLSIZE -1;
+    }
+
+    // 2 get the page table entry for page number for the current process
+    pteEntry_t* missing_tlb_entry = &current_process->p_supportStruct->sup_privatePgTbl[missing_page_num];
+
+    //klog_print("[missing page ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" tlb entry");
+    //klog_print_hex(missing_tlb_entry->pte_entryHI);
+    //klog_print(" ");
+    //klog_print_hex(missing_tlb_entry->pte_entryLO);
+    //klog_print("]");
+    
+    // 3 write the page table entry into the TLB
+    setENTRYHI(missing_tlb_entry->pte_entryHI);
+    setENTRYLO(missing_tlb_entry->pte_entryLO);
     TLBWR();
-    LDST((state_t*) 0x0FFFF000);
+    
+    // 4 return control to the current process
+    LDST(exception_state);
 }
 
 
@@ -99,7 +122,7 @@ void systemcallHandler(state_t* exceptionState) {
 
     switch (reg_A0) {
     //perform a multi-way branching depending on the type of exception
-        case SENDMESSAGE:
+        case SENDMESSAGE: {
             
             pcb_t* dest_process = (pcb_t*)reg_A1;
             
@@ -140,8 +163,8 @@ void systemcallHandler(state_t* exceptionState) {
             current_process->p_time -= get_elapsed_time_interupt(); 
             //updated by subtracting the time elapsed during the interrupt
             break;
-
-        case RECEIVEMESSAGE:
+        }
+        case RECEIVEMESSAGE: {
             
             pcb_t *sender_process = (pcb_PTR)reg_A1;
             //extract mex from inbox
@@ -173,7 +196,7 @@ void systemcallHandler(state_t* exceptionState) {
 
             freeMsg(msg);
             break;
-        
+        }
         default:
             TrapExceptionHandler(exceptionState);
             break;

@@ -21,12 +21,13 @@ exceptions.c file.
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
+#include "../klog.h"
 
-swap_t swap_pool[POOLSIZE];
+swap_t swap_pool_table[POOLSIZE];
 
-void initSwapStructs(void) {
+void initSwapStruct(void) {
     for (int i = 0; i < POOLSIZE; i++) {
-        swap_pool[i].sw_asid = NOPROC;
+        swap_pool_table[i].sw_asid = NOPROC;
     }
 }
 
@@ -39,12 +40,12 @@ unsigned int pageReplacementAlgorithm(void) {
 }
 
 int isSwapPoolFrameOccupied(unsigned int framenum) {
-    if (swap_pool[framenum].sw_asid != NOPROC) return TRUE;
+    if (swap_pool_table[framenum].sw_asid != NOPROC) return TRUE;
     else return FALSE;
 }
 
-unsigned int flashDevWrite(memaddr* write_address, memaddr* flash_dev_address) {
-    unsigned int command = (unsigned int)((unsigned int)write_address << 7) | FLASHWRITE;
+unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_address) {
+    unsigned int command = (unsigned int)((unsigned int)block_to_write << 8) | FLASHWRITE;
     unsigned status = 0;
     ssi_do_io_t do_io = {
         .commandAddr = flash_dev_address,
@@ -60,19 +61,20 @@ unsigned int flashDevWrite(memaddr* write_address, memaddr* flash_dev_address) {
     return status;
 }
 
-unsigned int writeFrameToFlashDev(unsigned int frame_number, memaddr *dest_address) {
+unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, unsigned int block_to_write) {
     // calculate right flash dev
-    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, swap_pool[frame_number].sw_asid));
+    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
     
-    // load start ram address to write in flash
+    // load start ram address to write to flash
     devreg_t* devReg =  (devreg_t*)dev_addr;
-    devReg->dtp.data0 = swap_pool[frame_number].sw_pageNo * PAGESIZE; // ?? bho
-    return flashDevWrite(dest_address, dev_addr);
+
+    devReg->dtp.data0 = mem_addr_to_read; // ?? bho
+    return flashDevWrite(block_to_write, &devReg->dtp.command);
 }
 
-unsigned int flashDevRead(memaddr *read_address, memaddr *flash_dev_address) {
+unsigned int flashDevRead(unsigned int block_to_read, memaddr *flash_dev_address) {
     unsigned int status = 0;
-    unsigned int value = (unsigned int)((unsigned int)read_address << 7) | FLASHREAD;
+    unsigned int value = (unsigned int)((unsigned int)block_to_read << 8) | FLASHREAD;
 
   ssi_do_io_t do_io = {
       .commandAddr = flash_dev_address,
@@ -87,88 +89,164 @@ unsigned int flashDevRead(memaddr *read_address, memaddr *flash_dev_address) {
   return status;
 }
 
-unsigned readFrameToFlashDev(memaddr *missing_page_address, pteEntry_t *page) {
+unsigned int readFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_write, unsigned int block_to_read) {
     // calculate right flash dev
-    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, (page->pte_entryHI >> ASIDSHIFT) & 7));
+    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
     
     // load start ram address to write to flash
     devreg_t* devReg =  (devreg_t*)dev_addr;
-    devReg->dtp.data0 = ((page->pte_entryHI & GETPAGENO) >> VPNSHIFT) * PAGESIZE; // ?? bho
-    return flashDevWrite(missing_page_address, dev_addr);
+
+    devReg->dtp.data0 = mem_addr_to_write; // ?? bho
+    return flashDevRead(block_to_read, &devReg->dtp.command);
 }
 
 void updateTLB(void) {
     TLBCLR(); // TODO: 5.2 update tlb when all debugged
 }
 
-void pager(void) {
-    unsigned int saved_status;
+void flash_status_debug(unsigned int status) {
+    switch (status) {
+        case 0 :{
+            KLOG_ERROR("Device Not Installed")
+            break;
+        }
+        case 1 :{
+            KLOG_ERROR("Device Ready")
+            break;
+        }
+        case 2 :{
+            KLOG_ERROR("Illegal Operation Code Error")
+            break;
+        }
+        case 3 :{
+            KLOG_ERROR("Device Busy")
+            break;
+        }
+        case 4 :{
+            KLOG_ERROR("Read Error")
+            break;
+        }
+        case 5 :{
+            KLOG_ERROR("Write Error")
+            break;
+        }
+        case 6 :{
+            KLOG_ERROR("DMA Transfer Error")
+            break;
+        }
+        default: {
+            KLOG_ERROR("status?")
+        }
+    }
+}
 
+void pager(void) {
+    //klog_print("[entry not valid -> pager]");
+    unsigned int saved_status;
+    
     // 1 get support data
     support_t* support_data = get_support_data();
 
     // 2 determine the cause of the TLB exception
-    state_t* exceptstate = &(support_data->sup_exceptState[0]);
+    state_t* exceptstate = &(support_data->sup_exceptState[PGFAULTEXCEPT]);
+    
+    // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
+    unsigned int ExcCode = CAUSE_GET_EXCCODE(exceptstate->cause) ;
+    if (ExcCode == TLBMOD) {
+        KLOG_PANIC("not TLBMOD allowed")
+        TrapExceptionHandler(exceptstate);
+    }
 
-    // 3 
-    if (exceptstate->cause == TLBMOD) TrapExceptionHandler(exceptstate);
-
-    // 4
+    // 4 Gain mutual exclusion over the Swap Pool table
     gainSwap();
-
+    
     // 5 Determine the missing page number (p)
+    
     unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
-
+    if (missing_page_num > USERPGTBLSIZE) {
+        missing_page_num = USERPGTBLSIZE -1;
+    }
+    
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
-    memaddr* swap_pool_start = (memaddr*)0x20020000;
-    memaddr* frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
+    
+    // swap pool ???
+    memaddr swap_pool_start = (memaddr)0x20020000;
+    memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
+    unsigned int frame_victim = frame_victim_address >> 12;
+    
+    //klog_print("[missing page num ");
+    //klog_print_dec(missing_page_num);
+    //klog_print(" frame victim num ");
+    //klog_print_dec(frame_victim_num);
+    //klog_print(" frame victim addr ");
+    //klog_print_hex(frame_victim_address);
+    //klog_print(" frame victim ");
+    //klog_print_hex(frame_victim);
+    //klog_print("]");
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
+        KLOG_ERROR("warnzone")
         // 8
         // ATOMIC start
         saved_status = getSTATUS();
         setSTATUS(saved_status & ~IECON); // disable interrupts
 
-        int belogns_to_ASID = swap_pool[frame_victim_num].sw_asid;
+        // (a) Update process x’s Page Table: mark Page Table entry k as not valid
+        swap_pool_table[frame_victim_num].sw_pte->pte_entryLO &= !VALIDON;
 
-        // (a)
-        swap_pool[frame_victim_num].sw_pte->pte_entryLO &= !VALIDON;
-
-        // (b)
+        // (b) Update the TLB, if needed
         updateTLB();
 
-        // (d)
-        unsigned int write_status = writeFrameToFlashDev(frame_victim_num, frame_victim_address);
-        if (write_status != 3 && write_status != 1) { // if is not ready or busy
+        setSTATUS(saved_status);
+        // ATOMIC end
+
+        // (c) Update process x’s backing store. Write the contents of frame i to the correct location on
+        //     process x’s backing store/flash device
+        unsigned int write_status = writeFrameToFlashDev(swap_pool_table[frame_victim_num].sw_asid, frame_victim_address, frame_victim_num);
+        if (write_status != READY) { // if is not ready or busy
+            flash_status_debug(write_status);
             // trap
-            TrapExceptionHandler(write_status); // ??
+            //TrapExceptionHandler((unsigned int)read_status); // ??
+            KLOG_PANIC("flash writr not succesful")
         }
     }
-
-    // 9
-    unsigned int read_status = readFrameToFlashDev(frame_victim_address, &support_data->sup_privatePgTbl[missing_page_num]);
-    if (read_status != 3 && read_status != 1) { // if is not ready or busy
+    
+    // 9 Read the contents of the Current Process’s backing store/flash device logical page p into frame i 
+    unsigned int block_to_read = missing_page_num;
+    if (block_to_read < 0 || block_to_read > 32) {
+        KLOG_PANIC("BLOCK ERROR")
+    }
+    unsigned int read_status = readFrameToFlashDev(support_data->sup_asid, frame_victim_address, block_to_read);
+    if (read_status != READY) { // if is not ready or busy
+        flash_status_debug(read_status);
         // trap
-        TrapExceptionHandler(read_status); // ??
+        //TrapExceptionHandler((unsigned int)read_status); // ??
+        KLOG_PANIC("flash read not succesful")
     }
 
     // 10 update swap pool page table
-    swap_pool[frame_victim_num].sw_asid     = support_data->sup_asid;
-    swap_pool[frame_victim_num].sw_pageNo   = missing_page_num;
-    swap_pool[frame_victim_num].sw_pte      = &support_data->sup_privatePgTbl[missing_page_num];
+    swap_pool_table[frame_victim_num].sw_asid     = support_data->sup_asid;
+    swap_pool_table[frame_victim_num].sw_pageNo   = missing_page_num;
+    swap_pool_table[frame_victim_num].sw_pte      = &support_data->sup_privatePgTbl[missing_page_num];
+
+    // ATOMIC start
+    saved_status = getSTATUS();
+    setSTATUS(saved_status & ~IECON); // disable interrupts
 
     // 11 update the current process's page table entry
-    support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim_address << VPNSHIFT) | DIRTYON | VALIDON;
+    support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim << VPNSHIFT) | DIRTYON | VALIDON;
 
     // 12 upadte the tlb
     updateTLB();
 
-    // 13
     setSTATUS(saved_status);
     // ATOMIC end
 
-    // 14 return control to che current process
+    // 13
+    releaseSwap();
+    
+    // 14 return control to the current process
     LDST(exceptstate);
 }
