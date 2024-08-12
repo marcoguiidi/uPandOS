@@ -10,4 +10,6 @@ void initSwapStruct(void);
 
 void pager(void);
 
+void free_occupied_frames(unsigned int asid);
+
 #endif

@@ -159,7 +159,6 @@ void support_trap_exception_handler(support_t* support) {
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
     debung_program_running(current_process);
     debug_trap(ExcCode);
-    KLOG_PANIC("p k")
     // send message to swap mutex
     releaseSwap(); // ? swap mutex maybe not accesible
     // kill process

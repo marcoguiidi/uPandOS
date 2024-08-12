@@ -15,6 +15,7 @@ sst.c: This module implements the System Service Thread:
 #include "headers/initProc.h"
 #include "headers/misc.h"
 #include "../phase2/headers/initial.h"
+#include "../phase3/headers/vmSupport.h"
 
 int printer_write_string(int lenght, char* string, devreg_t* printer_base_addr) {
     int ret = 0; // no errors
@@ -83,6 +84,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             // send a message to test process to tell that one SST is killed 
             SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0); // TODO: this make kill all
             // kill sst and so his child
+            free_occupied_frames(sender->p_supportStruct->sup_asid);
             kill_process(SELF);
             break;
         }

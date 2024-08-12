@@ -32,11 +32,28 @@ void initSwapStruct(void) {
 }
 
 // 5.4
+// Small Support Level Optimizations n.2
+//Improve the μPandOS page replacement algorithm to first check for an unoccupied frame before
+//selecting an occupied frame to use. This will turn an O(1) operation into an O(n) operation in
+//exchange for fewer I/O (write) operations.
 unsigned int pageReplacementAlgorithm(void) {
     static unsigned int index = 0; // static variable inside a function keeps its value between invocations
     
-    index = (index + 1) % POOLSIZE;
+    for (int i = 0; i < POOLSIZE -1; i++) {
+        index = (index + 1) % POOLSIZE;
+        if (swap_pool_table[index].sw_asid == NOPROC) break;
+    }
+    
     return index;
+}
+
+// Small Support Level Optimizations n.1
+//When a U-proc terminates, mark all of the frames it occupied as unoccupied [Section 4.1]. This
+//has the potential to eliminate extraneous writes to the backing store.
+void free_occupied_frames(unsigned int asid) {
+    for (int i = 0; i < POOLSIZE; i++) {
+        if (swap_pool_table[i].sw_asid == asid) swap_pool_table[i].sw_asid = NOPROC;
+    }
 }
 
 int isSwapPoolFrameOccupied(unsigned int framenum) {
@@ -153,7 +170,7 @@ void pager(void) {
     // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
     unsigned int ExcCode = CAUSE_GET_EXCCODE(exceptstate->cause) ;
     if (ExcCode == TLBMOD) {
-        KLOG_PANIC("not TLBMOD allowed")
+        KLOG_ERROR("not TLBMOD allowed")
         TrapExceptionHandler(exceptstate);
     }
 
