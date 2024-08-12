@@ -113,17 +113,11 @@ void uproc_init(int asid) {
     //Important: SP values are always the end of the area, not the start. Hence, to use the penul-
     //timate RAM frame as a U-proc’s stack space for one of its Support Level handlers, one would
     //assign the SP value to RAMTOP-PAGESIZE.
-    
-    support->sup_exceptContext[0].stackPtr = getuserstack();
-    support->sup_exceptContext[1].stackPtr = getuserstack();
+    // use the same stack because one support exception is called at the time
+    unsigned int support_exception_stack = getuserstack();
+    support->sup_exceptContext[0].stackPtr = support_exception_stack;
+    support->sup_exceptContext[1].stackPtr = support_exception_stack;
 }
-
-/*
-sp for swap mutex is one page next kernel (kerenelstack - QPAGE )
-so
-sp for sst_0 is (swap_mutex_stack - QPAGE) = kernelstack - 2*QPAGE
-sp for sst_n = kernelstack - (2+n)*QPAGE
-*/
 
 void sst_state_init(void) {
     for (int asid = 0; asid < UPROCMAX; asid++) {
@@ -141,9 +135,6 @@ void sst_state_init(void) {
         state->entry_hi = asid << ASIDSHIFT;
     }
 }
-
-// run n test max UPROCMAX
-#define TESTRUN 8
 
 void test(void) {
 
@@ -171,30 +162,17 @@ void test(void) {
 
     sst_state_init();
     // launch 8 sst with corrisponding u-procs
-    for (int asid = 0; asid < TESTRUN; asid++) {
+    for (int asid = 0; asid < UPROCMAX; asid++) {
         // setup sst state
         
         // support is same as u-proc
         sst_pcb[asid] = create_process(&state_t_sst_pool[asid], &support_t_pool[asid]);
     }
-    //sst_pcb[TESTRUN - 1] = create_process(&state_t_sst_pool[TESTRUN - 1], &support_t_pool[TESTRUN - 1]);
 
     // wait for termination of all SST
     void* payload;
-    /*while (TRUE) {
-        pcb_PTR p = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
-        
-        debung_program_running(p);
-        process_killall(p);
-        
-        if (p == sst_pcb[1]) {
-            break;
-        } else {
-            KLOG_ERROR("NOT SST[1]")
-        }
-    }*/
-    for (int i = 0; i < TESTRUN; i++) {
-        SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+    
+    for (int i = 0; i < UPROCMAX; i++) {
         SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
     }
     

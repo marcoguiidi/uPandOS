@@ -34,8 +34,8 @@ int printer_write_string(int lenght, char* string, devreg_t* printer_base_addr) 
         SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
         SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
 
-        if (status != BUSY) { // ?
-            ret = -1; // error
+        if (status != READY) {
+            ret = -1;
             break;
         }
     }

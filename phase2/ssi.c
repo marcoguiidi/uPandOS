@@ -25,12 +25,11 @@ void SSI_function_entry_point() {
 // TODO: funzione bugata
 int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
     int retstatus = 0;
-    for (int line = 0; line < N_INTERRUPT_LINES; line++) {
+    for (int line = 0; line < N_INTERRUPT_LINES+1; line++) {
         for (int dev = 0; dev < N_DEV_PER_IL; dev++) {
             memaddr* addr = (memaddr*)DEV_REG_ADDR(line, dev);
             if (addr > devaddr) {
                 if (dev == 0) {
-                    KLOG_ERROR("LESES")
                     *lineno = line-1;
                     *devno = N_DEV_PER_IL -1;
                 } else {
