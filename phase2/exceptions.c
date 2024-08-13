@@ -14,7 +14,6 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include <umps3/umps/types.h>
 #include "../klog.h"
 
-// TODO: va in loop, non gli do una pagina invalida e non va in pager
 void uTLB_RefillHandler() {
     // 1 determine the page number of the missing TLB entry
     state_t *exception_state = (state_t *)BIOSDATAPAGE;

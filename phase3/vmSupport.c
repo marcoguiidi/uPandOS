@@ -166,7 +166,6 @@ void pager(void) {
     // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
     unsigned int ExcCode = CAUSE_GET_EXCCODE(exceptstate->cause) ;
     if (ExcCode == TLBMOD) {
-        KLOG_ERROR("not TLBMOD allowed")
         TrapExceptionHandler(exceptstate);
     }
 

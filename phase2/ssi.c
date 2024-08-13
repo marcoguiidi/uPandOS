@@ -22,7 +22,6 @@ void SSI_function_entry_point() {
     }
 }
 
-// TODO: funzione bugata
 int devaddr_get_lineno_devno_regno(memaddr* devaddr, int* lineno, int* devno) {
     int retstatus = 0;
     for (int line = 0; line < N_INTERRUPT_LINES+1; line++) {

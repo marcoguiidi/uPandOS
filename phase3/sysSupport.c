@@ -83,8 +83,7 @@ void support_syscall_exception_handler(support_t* support) {
             break;
         }
         default:
-            klog_print_dec(reg_A0);
-            debung_program_running(current_process);
+            // TODO: trap
             KLOG_PANIC("USYS code not found")
             break;
     }

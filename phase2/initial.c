@@ -46,8 +46,6 @@ unsigned int getuserstack(void) {
     unsigned int ramtop;
     RAMTOP(ramtop);
     unsigned int sptr = (ramtop - times*PAGESIZE);
-    //klog_print_hex(sptr);
-    //KLOG_ERROR("stack")
     if (sptr <= SWAP_POOL_END) {
         KLOG_PANIC("user stack all used")
     }

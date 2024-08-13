@@ -82,7 +82,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
         case TERMINATE: {
             KLOG_ERROR(" [uproc terminated] ")
             // send a message to test process to tell that one SST is killed 
-            SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0); // TODO: this make kill all
+            SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
             // kill sst and so his child
             free_occupied_frames(sender->p_supportStruct->sup_asid);
             kill_process(SELF);
@@ -115,6 +115,7 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             break;
         }
         default: {
+            // TODO: trap
             KLOG_PANIC("service code not found")
         }
     }
