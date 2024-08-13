@@ -117,10 +117,6 @@ unsigned int readFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_write, u
     return flashDevRead(block_to_read, &devReg->dtp.command);
 }
 
-void updateTLB(void) {
-    TLBCLR(); // TODO: 5.2 update tlb when all debugged
-}
-
 void flash_status_debug(unsigned int status) {
     switch (status) {
         case 0 :{
@@ -204,7 +200,6 @@ void pager(void) {
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
-        KLOG_ERROR("warnzone")
         // 8
         // ATOMIC start
         saved_status = getSTATUS();
@@ -212,9 +207,18 @@ void pager(void) {
 
         // (a) Update process x’s Page Table: mark Page Table entry k as not valid
         swap_pool_table[frame_victim_num].sw_pte->pte_entryLO &= !VALIDON;
+        
 
-        // (b) Update the TLB, if needed
-        updateTLB();
+        // Update the TLB by using TLBP and TLBWI instead of TLBCLR [Section 5.2]
+        // (b) Update the TLB, if needed = mark it invalid if present
+        setENTRYHI(swap_pool_table[frame_victim_num].sw_pte->pte_entryHI);
+        TLBP();
+        if ((getINDEX() & (1 << 31)) == 0) { //matching found
+            setENTRYHI(swap_pool_table[frame_victim_num].sw_pte->pte_entryHI);
+            setENTRYLO(swap_pool_table[frame_victim_num].sw_pte->pte_entryLO);
+            TLBWI();
+        } 
+        
 
         setSTATUS(saved_status);
         // ATOMIC end
@@ -255,9 +259,18 @@ void pager(void) {
     // 11 update the current process's page table entry
     support_data->sup_privatePgTbl[missing_page_num].pte_entryLO = ((unsigned int)frame_victim << VPNSHIFT) | DIRTYON | VALIDON;
 
-    // 12 upadte the tlb
-    updateTLB();
-
+    // Update the TLB by using TLBP and TLBWI instead of TLBCLR [Section 5.2]
+    // 12 update the tlb by writing in a random spot or replacing wrong entry
+    setENTRYHI(support_data->sup_privatePgTbl[missing_page_num].pte_entryHI);
+    setENTRYLO(support_data->sup_privatePgTbl[missing_page_num].pte_entryLO);
+    TLBP();
+    
+    if ((getINDEX() & (1 << 31)) == 0) { // found
+        TLBWI();
+    } else {
+        TLBWR();
+    }
+    
     setSTATUS(saved_status);
     // ATOMIC end
 
