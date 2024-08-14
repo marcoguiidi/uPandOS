@@ -12,12 +12,19 @@ extern pcb_PTR uproc_pbc[8];
 extern state_t   state_t_pool[8];
 extern support_t support_t_pool[8];
 
-void uproc_init(int asid);
-
+/**
+gain acces to the swap pool table
+ */
 void gainSwap(void);
 
+/**
+release acces to the swap pool table
+ */
 void releaseSwap(void);
 
+/**
+test phase3 code by running multiple u-procs
+ */
 void test(void);
 
 #endif

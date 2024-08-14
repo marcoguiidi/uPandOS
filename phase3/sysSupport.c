@@ -18,7 +18,8 @@ sysSupport.c: This module implements the Support Level’s:
 #include <umps3/umps/cp0.h>
 #include "../klog.h"
 
-void debung_program_running(pcb_PTR pcb) {
+// for debugging purposes
+void debug_pcb_name(pcb_PTR pcb) {
     klog_print("is exec ");
     if (pcb == NULL) {
         klog_print("kernel or error\n");
@@ -55,46 +56,7 @@ void debung_program_running(pcb_PTR pcb) {
     klog_print("unknown\n");
 }
 
-void support_syscall_exception_handler(support_t* support) {
-    // get state register at time of syscall
-    state_t* exceptionState = &support->sup_exceptState[GENERALEXCEPT];
-
-    // syscall type
-    int reg_A0 = exceptionState->reg_a0;
-    // dest process
-    unsigned int reg_A1 = exceptionState->reg_a1;
-    // payload of the mex
-    unsigned int reg_A2 = exceptionState->reg_a2;
-
-    switch (reg_A0) {
-    //perform a multi-way branching depending on the type of exception
-        case SENDMSG: {
-            if (reg_A1 == PARENT) {
-                reg_A1 = (unsigned int)sst_pcb[support->sup_asid]; // sst_pcb ?? maybe not accesible        
-            }
-            SYSCALL(SENDMESSAGE, reg_A1, reg_A2, 0);
-            break;
-        }
-        case RECEIVEMSG: {
-            SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
-            // send response
-            //KLOG_ERROR("SEND RESP")
-            //SYSCALL(SENDMESSAGE, (unsigned int)uproc_pbc[support->sup_asid], reg_A2, 0);
-            break;
-        }
-        default:
-            // TODO: trap
-            KLOG_PANIC("USYS code not found")
-            break;
-    }
-    // reuturn from non bloking
-    exceptionState->pc_epc += WORDLEN; //pc updated
-    /*move the PC to the next instruction, avoiding entering an 
-    infinite loop that would repeat the same syscall*/
-    LDST(exceptionState);
-    //restores processor state
-}
-
+// for debugging purposes
 void debug_trap(unsigned int ExcCode) {
     switch (ExcCode) {
         case 0: {
@@ -156,12 +118,12 @@ void support_trap_exception_handler(support_t* support) {
     // debug
     state_t* state = &support->sup_exceptState[GENERALEXCEPT];
     unsigned int ExcCode = CAUSE_GET_EXCCODE(state->cause);
-    debung_program_running(current_process);
+    debug_pcb_name(current_process);
     debug_trap(ExcCode);
     // send message to swap mutex
-    releaseSwap(); // ? swap mutex maybe not accesible
+    releaseSwap();
     // kill process
-    kill_process(SELF); // ?? self
+    kill_process(SELF);
 }
 
 void support_general_exception_handler() {
@@ -175,4 +137,39 @@ void support_general_exception_handler() {
         support_trap_exception_handler(support);
     }
 
+}
+
+void support_syscall_exception_handler(support_t* support) {
+    // get state register at time of syscall
+    state_t* exceptionState = &support->sup_exceptState[GENERALEXCEPT];
+
+    // syscall type
+    int reg_A0 = exceptionState->reg_a0;
+    // dest process
+    unsigned int reg_A1 = exceptionState->reg_a1;
+    // payload of the mex
+    unsigned int reg_A2 = exceptionState->reg_a2;
+
+    switch (reg_A0) {
+    //perform a multi-way branching depending on the type of exception
+        case SENDMSG: {
+            if (reg_A1 == PARENT) reg_A1 = (unsigned int)sst_pcb[support->sup_asid];
+            SYSCALL(SENDMESSAGE, reg_A1, reg_A2, 0);
+            break;
+        }
+        case RECEIVEMSG: {
+            SYSCALL(RECEIVEMESSAGE, reg_A1, reg_A2, 0);
+            break;
+        }
+        default:
+            // service code not valid, kill
+            support_trap_exception_handler(support);
+            break;
+    }
+    // return from non blocking
+    exceptionState->pc_epc += WORDLEN; //pc updated
+    /*move the PC to the next instruction, avoiding entering an 
+    infinite loop that would repeat the same syscall*/
+    LDST(exceptionState);
+    //restores processor state
 }

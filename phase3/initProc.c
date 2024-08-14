@@ -31,10 +31,10 @@ void releaseSwap(void) {
     SYSCALL(SENDMESSAGE, (unsigned int)swap_mutex, 0, 0);
 }
 
-#define QPAGE 1024
-#define IEPBITON 0x4
-#define CAUSEINTMASK 0xFD00
-
+/**
+The Swap Mutex process. A process that provides mutual exclusion access to the Swap Pool
+table.
+*/
 void swap_mutex_function(void) {
     pcb_t* sender;
     while (TRUE) {
@@ -46,6 +46,7 @@ void swap_mutex_function(void) {
     }
 }
 
+// test global variables
 state_t   state_t_pool[8];
 state_t   state_t_sst_pool[8];
 support_t support_t_pool[8];
@@ -72,7 +73,7 @@ void uproc_init(int asid) {
     // enstryhi.asid to the process's unique id
     state->entry_hi = asid << ASIDSHIFT;
 
-    //ititialization of a support structure
+    //initialization of a support structure
     support_t* support = &support_t_pool[asid];
     // setup sup_asid to the process asid
     support->sup_asid = asid;
@@ -144,7 +145,6 @@ void test(void) {
     // pc and s_t9 set to  swap_mutex_function
     swap_mutex_state->pc_epc = (memaddr)swap_mutex_function;
     swap_mutex_state->reg_t9 = (memaddr)swap_mutex_function;
-    // sp set to kernelstack - QPAGE
     swap_mutex_state->reg_sp = getuserstack();
     // status set for kernel mode with all interrupts and the plt enabled
     swap_mutex_state->status = 0b00 | 0b1 | IMON | TEBITON;

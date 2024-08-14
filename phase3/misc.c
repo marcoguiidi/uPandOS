@@ -4,6 +4,7 @@
 #include "../phase1/headers/msg.h"
 #include "../phase1/headers/pcb.h"
 #include "../phase2/headers/initial.h"
+#include "../phase3/headers/vmSupport.h"
 
 #include <umps3/umps/libumps.h>
 
@@ -39,11 +40,11 @@ pcb_t *create_process(state_t* state, support_t* support) {
     return p;
 }
 
-#define SELF (pcb_t*)NULL
 pcb_t* kill_process(pcb_t* process) {
     if (process == SELF) {
         process = current_process;
     }
+    free_occupied_frames(process->p_supportStruct->sup_asid);
     pcb_t *p;
     ssi_payload_t payload = {
         .service_code = TERMPROCESS,

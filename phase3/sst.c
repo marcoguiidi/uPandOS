@@ -15,7 +15,6 @@ sst.c: This module implements the System Service Thread:
 #include "headers/initProc.h"
 #include "headers/misc.h"
 #include "../phase2/headers/initial.h"
-#include "../phase3/headers/vmSupport.h"
 
 int printer_write_string(int lenght, char* string, devreg_t* printer_base_addr) {
     int ret = 0; // no errors
@@ -24,6 +23,7 @@ int printer_write_string(int lenght, char* string, devreg_t* printer_base_addr) 
         // place the character to print in DATA0
         printer_base_addr->dtp.data0 = string[i];
 
+        // request a doio to ssi
         ssi_do_io_t do_io = {
             .commandAddr = (memaddr*)(&printer_base_addr->dtp.command),
             .commandValue = PRINTCHR,
@@ -52,6 +52,7 @@ int terminal_write_string(int lenght, char* string, devreg_t* terminal_base_addr
         // prepare command value
         unsigned int value = PRINTCHR | (((unsigned int)string[i]) << 8);
         
+        // request a doio to ssi
         ssi_do_io_t do_io = {
             .commandAddr = command,
             .commandValue = value,
@@ -84,7 +85,6 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             // send a message to test process to tell that one SST is killed 
             SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
             // kill sst and so his child
-            free_occupied_frames(sender->p_supportStruct->sup_asid);
             kill_process(SELF);
             break;
         }
@@ -97,20 +97,20 @@ void SSTRequest(pcb_PTR sender, int service_code, void* arg) {
             if (ret != 0) {
                 KLOG_PANIC("write printer not succesful")
             }
-            // send an empty respose to notify and of print
+            // send an empty respose to notify end of print
             SYSCALL(SENDMESSAGE, (unsigned int)sender, 0, 0);
             break;
         }
         case WRITETERMINAL: {
             sst_print_PTR print_payload = (sst_print_PTR)arg;
-            // calculate the base addr of printer
+            // calculate the base addr of terminal
             int line = sender->p_supportStruct->sup_asid;
             devreg_t* terminal_base_addr = (devreg_t*)DEV_REG_ADDR(IL_TERMINAL, line);
             int ret = terminal_write_string(print_payload->length, print_payload->string, terminal_base_addr);
             if (ret != 0) {
                 KLOG_PANIC("write terminal not succesful")
             }
-            // send an empty respose to notify and of print
+            // send an empty respose to notify end of print
             SYSCALL(SENDMESSAGE, (unsigned int)sender, 0, 0);
             break;
         }

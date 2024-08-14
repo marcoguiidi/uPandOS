@@ -18,20 +18,14 @@ void uTLB_RefillHandler() {
     // 1 determine the page number of the missing TLB entry
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
     unsigned int missing_page_num = (exception_state->entry_hi & GETPAGENO) >> VPNSHIFT;
+    
+    // make in range if is not 
     if (missing_page_num > USERPGTBLSIZE) {
         missing_page_num = USERPGTBLSIZE -1;
     }
 
     // 2 get the page table entry for page number for the current process
     pteEntry_t* missing_tlb_entry = &current_process->p_supportStruct->sup_privatePgTbl[missing_page_num];
-
-    //klog_print("[missing page ");
-    //klog_print_dec(missing_page_num);
-    //klog_print(" tlb entry");
-    //klog_print_hex(missing_tlb_entry->pte_entryHI);
-    //klog_print(" ");
-    //klog_print_hex(missing_tlb_entry->pte_entryLO);
-    //klog_print("]");
     
     // 3 write the page table entry into the TLB
     setENTRYHI(missing_tlb_entry->pte_entryHI);

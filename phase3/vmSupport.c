@@ -22,6 +22,7 @@ exceptions.c file.
 #include <umps3/umps/types.h>
 #include <umps3/umps/arch.h>
 #include "../klog.h"
+#include "headers/sysSupport.h"
 
 swap_t swap_pool_table[POOLSIZE];
 
@@ -61,11 +62,21 @@ int isSwapPoolFrameOccupied(unsigned int framenum) {
     else return FALSE;
 }
 
-unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_address) {
+unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, unsigned int block_to_write) {
+    // calculate right flash dev
+    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
+    devreg_t* devReg =  (devreg_t*)dev_addr;
+
+    // load start ram address to write to flash
+    devReg->dtp.data0 = mem_addr_to_read;
+    
+    // calculate right command
     unsigned int command = (unsigned int)((unsigned int)block_to_write << 8) | FLASHWRITE;
     unsigned status = 0;
+    
+    // request doio to ssi
     ssi_do_io_t do_io = {
-        .commandAddr = flash_dev_address,
+        .commandAddr = &devReg->dtp.command,
         .commandValue = command,
     };
     ssi_payload_t payload = {
@@ -78,43 +89,30 @@ unsigned int flashDevWrite(unsigned int block_to_write, memaddr *flash_dev_addre
     return status;
 }
 
-unsigned int writeFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_read, unsigned int block_to_write) {
-    // calculate right flash dev
-    memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
-    
-    // load start ram address to write to flash
-    devreg_t* devReg =  (devreg_t*)dev_addr;
-
-    devReg->dtp.data0 = mem_addr_to_read; // ?? bho
-    return flashDevWrite(block_to_write, &devReg->dtp.command);
-}
-
-unsigned int flashDevRead(unsigned int block_to_read, memaddr *flash_dev_address) {
-    unsigned int status = 0;
-    unsigned int value = (unsigned int)((unsigned int)block_to_read << 8) | FLASHREAD;
-
-  ssi_do_io_t do_io = {
-      .commandAddr = flash_dev_address,
-      .commandValue = value,
-  };
-  ssi_payload_t payload = {
-      .service_code = DOIO,
-      .arg = &do_io,
-  };
-  SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
-  SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
-  return status;
-}
-
 unsigned int readFrameToFlashDev(unsigned int asid, memaddr mem_addr_to_write, unsigned int block_to_read) {
     // calculate right flash dev
     memaddr* dev_addr = (memaddr*)(DEV_REG_ADDR(IL_FLASH, asid));
-    
-    // load start ram address to write to flash
     devreg_t* devReg =  (devreg_t*)dev_addr;
 
-    devReg->dtp.data0 = mem_addr_to_write; // ?? bho
-    return flashDevRead(block_to_read, &devReg->dtp.command);
+    // load start ram address to read from flash
+    devReg->dtp.data0 = mem_addr_to_write;
+    unsigned int status = 0;
+    
+    // calculate right command
+    unsigned int value = (unsigned int)((unsigned int)block_to_read << 8) | FLASHREAD;
+
+    // request doio to ssi
+    ssi_do_io_t do_io = {
+        .commandAddr = &devReg->dtp.command,
+        .commandValue = value,
+    };
+    ssi_payload_t payload = {
+        .service_code = DOIO,
+        .arg = &do_io,
+    };
+    SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&payload), 0);
+    SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&status), 0);
+    return status;
 }
 
 void flash_status_debug(unsigned int status) {
@@ -154,7 +152,6 @@ void flash_status_debug(unsigned int status) {
 }
 
 void pager(void) {
-    //klog_print("[entry not valid -> pager]");
     unsigned int saved_status;
     
     // 1 get support data
@@ -163,9 +160,8 @@ void pager(void) {
     // 2 determine the cause of the TLB exception
     state_t* exceptstate = &(support_data->sup_exceptState[PGFAULTEXCEPT]);
     
-    // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
     unsigned int ExcCode = CAUSE_GET_EXCCODE(exceptstate->cause) ;
-    if (ExcCode == TLBMOD) {
+    if (ExcCode == TLBMOD) { // 3 If the Cause is a TLB-Modification exception, treat this exception as a program trap
         TrapExceptionHandler(exceptstate);
     }
 
@@ -173,29 +169,17 @@ void pager(void) {
     gainSwap();
     
     // 5 Determine the missing page number (p)
-    
     unsigned int missing_page_num = (exceptstate->entry_hi & GETPAGENO) >> VPNSHIFT;
-    if (missing_page_num > USERPGTBLSIZE) {
+    if (missing_page_num > USERPGTBLSIZE) { // make stay in range
         missing_page_num = USERPGTBLSIZE -1;
     }
     
     // 6 pick a frame i from the swap pool..
     unsigned int frame_victim_num = pageReplacementAlgorithm();
     
-    // swap pool ???
     memaddr swap_pool_start = (memaddr)0x20020000;
     memaddr frame_victim_address = swap_pool_start + (frame_victim_num * PAGESIZE);
     unsigned int frame_victim = frame_victim_address >> 12;
-    
-    //klog_print("[missing page num ");
-    //klog_print_dec(missing_page_num);
-    //klog_print(" frame victim num ");
-    //klog_print_dec(frame_victim_num);
-    //klog_print(" frame victim addr ");
-    //klog_print_hex(frame_victim_address);
-    //klog_print(" frame victim ");
-    //klog_print_hex(frame_victim);
-    //klog_print("]");
 
     // 7 determine if frame i is occupied
     if (isSwapPoolFrameOccupied(frame_victim_num)) {
@@ -228,8 +212,8 @@ void pager(void) {
         if (write_status != READY) { // if is not ready or busy
             flash_status_debug(write_status);
             // trap
-            //TrapExceptionHandler((unsigned int)read_status); // ??
-            KLOG_PANIC("flash writr not succesful")
+            support_trap_exception_handler(support_data);
+            KLOG_ERROR("flash writr not succesful")
         }
     }
     
@@ -242,8 +226,8 @@ void pager(void) {
     if (read_status != READY) { // if is not ready or busy
         flash_status_debug(read_status);
         // trap
-        //TrapExceptionHandler((unsigned int)read_status); // ??
-        KLOG_PANIC("flash read not succesful")
+        support_trap_exception_handler(support_data);
+        KLOG_ERROR("flash read not succesful")
     }
 
     // 10 update swap pool page table
