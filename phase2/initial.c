@@ -40,6 +40,12 @@ cpu_t acc_cpu_time;
 
 #define SWAP_POOL_START 0x20020000
 #define SWAP_POOL_END   SWAP_POOL_START + MAXPAGES * PAGESIZE
+
+/**
+return an unused page to use for stack for user processes
+
+starts from RAMTOP and proceed backwards
+*/
 unsigned int getuserstack(void) {
     static unsigned int times = 0;
     times++;
@@ -54,10 +60,6 @@ unsigned int getuserstack(void) {
     }
     return sptr;
 }
-
-
-
-
 
 int main(void) {
     /*
@@ -118,7 +120,7 @@ int main(void) {
     */
     ssi_pcb = allocPcb();
     /*
-    Set all the Process Tree fields: alredy enitializewted
+    Set all the Process Tree fields: already initialized
     */
     ssi_pcb->p_time = 0;
     ssi_pcb->p_supportStruct = NULL;

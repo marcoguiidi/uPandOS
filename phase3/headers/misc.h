@@ -4,7 +4,7 @@
 #include <umps3/umps/types.h>
 #include "../../headers/types.h"
 /*
-ssi serveces wrappers
+ssi services wrappers
 */
 
 /**

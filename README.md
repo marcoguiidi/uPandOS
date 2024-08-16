@@ -9,7 +9,7 @@ make
 ## run
 
 ```bash
-umps3 machine-config
+umps3 umps3.json
 ```
 
 ## Aspetti implementativi
@@ -43,3 +43,19 @@ risposta al PCB al gestore degli interrupts in modo da mandare un messaggio
 in meno. Per mandare il messaggio il si emula una SENDMESSAGE con
 `msg->m_sender = ssi_pcb;` in modo che per il ricevente il messaggio venga dalla
 ssi.
+
+### Phase3
+
+#### Assegnamento degli stack per i processi utente
+
+> phase2/initial.c line 49 (getuserstack)
+
+Gli stack per tutti i processi escluso il kernel vengono assegnati nel modo 
+seguente: la grandezza degli stack è di una pagina, il primo stack è situato
+nell'ultima pagina disponibile in memoria (ramtop), gli stack seguenti sono
+situati una pagina prima del precedente.
+
+#### Small Support Level Optimizations implemented
+
+Sono state implementate le seguenti ottimizzazioni
+(MicroPandOSPhase3Spec sezione 11): punti 1, 2, 3, 6.
