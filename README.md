@@ -4,6 +4,9 @@
 
 ```bash
 make
+cd testers
+make
+cd ..
 ```
 
 ## run
